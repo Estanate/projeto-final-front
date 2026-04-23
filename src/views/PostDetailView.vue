@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useFeedStore } from '@/stores/feed';
 import api from '@/services/api';
@@ -13,43 +13,113 @@ const feed = useFeedStore();
 const post = ref(null);
 const isLoading = ref(true);
 const commentBody = ref('');
+const errorMessage = ref('');
+const commentErrorMessage = ref('');
+
+function getPostAuthor(postData) {
+  return postData?.author || postData?.user || postData?.owner || null;
+}
+
+function getPostAuthorUsername(postData) {
+  return getPostAuthor(postData)?.username || postData?.username || 'usuario';
+}
+
+function getPostAuthorName(postData) {
+  const author = getPostAuthor(postData);
+  return author?.name || getPostAuthorUsername(postData);
+}
+
+function getCommentAuthor(comment) {
+  return comment?.author || comment?.user || comment?.owner || null;
+}
+
+function getCommentAuthorUsername(comment) {
+  return getCommentAuthor(comment)?.username || comment?.username || 'usuario';
+}
+
+function getCommentAuthorName(comment) {
+  const author = getCommentAuthor(comment);
+  return author?.name || getCommentAuthorUsername(comment);
+}
+
+function getPostLikesCount(postData) {
+  if (Number.isFinite(Number(postData?.likesCount))) return Number(postData.likesCount);
+  if (Number.isFinite(Number(postData?.likes_count))) return Number(postData.likes_count);
+  if (Number.isFinite(Number(postData?.likeCount))) return Number(postData.likeCount);
+  if (Array.isArray(postData?.likes)) return postData.likes.length;
+  return 0;
+}
+
+function getPostCreatedAt(postData) {
+  return postData?.createdAt || postData?.created_at || postData?.posted_at || postData?.date || null;
+}
 
 onMounted(async () => {
   await fetchPost();
 });
 
+watch(
+  () => route.params.postId,
+  async () => {
+    await fetchPost();
+  }
+);
+
 async function fetchPost() {
   isLoading.value = true;
+  errorMessage.value = '';
+
+  const postId = route.params.postId;
+  const cachedPost = feed.getPostById(postId);
+  if (cachedPost) {
+    post.value = cachedPost;
+  }
+
   try {
-    const { data } = await api.get(`/posts/${route.params.postId}`);
-    post.value = data;
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('TIMEOUT')), 8000);
+    });
+
+    const response = await Promise.race([
+      api.get(`/posts/${postId}`),
+      timeoutPromise,
+    ]);
+
+    const payload = response.data?.data ?? response.data;
+    post.value = payload;
   } catch (error) {
     console.error(error);
-    // TODO: handle not found
+
+    if (!post.value) {
+      errorMessage.value = 'Nao foi possivel carregar esta publicacao.';
+    }
   } finally {
     isLoading.value = false;
   }
 }
 
 async function handleLike() {
+  if (!post.value?.id) return;
   await feed.toggleLike(post.value.id);
   // Update local
   post.value.isLiked = !post.value.isLiked;
-  post.value.likesCount += post.value.isLiked ? 1 : -1;
+  const currentLikes = getPostLikesCount(post.value);
+  post.value.likesCount = currentLikes + (post.value.isLiked ? 1 : -1);
 }
 
 async function handleComment() {
   if (!commentBody.value.trim()) return;
 
+  commentErrorMessage.value = '';
   try {
-    const { data } = await api.post(`/posts/${post.value.id}/comments`, {
+    await api.post(`/posts/${post.value.id}/comments`, {
       body: commentBody.value.trim(),
     });
-
-    post.value.comments.push(data);
     commentBody.value = '';
+    await fetchPost();
   } catch (error) {
     console.error(error);
+    commentErrorMessage.value = 'Nao foi possivel salvar o comentario.';
   }
 }
 </script>
@@ -59,17 +129,21 @@ async function handleComment() {
     Carregando...
   </div>
 
+  <div v-else-if="errorMessage" class="text-center py-4 text-danger">
+    {{ errorMessage }}
+  </div>
+
   <div v-else-if="post" class="post-detail">
     <!-- Header -->
-    <header class="post-header">
-      <router-link :to="`/perfil?user=${post.author.username}`" class="author">
-        <Avatar :src="post.author.avatar" :alt="post.author.name" size="sm" />
-        <span class="username">{{ post.author.username }}</span>
+    <header v-if="getPostAuthor(post)" class="post-header">
+      <router-link :to="`/perfil?user=${getPostAuthorUsername(post)}`" class="author">
+        <Avatar :src="getPostAuthor(post)?.avatar" :alt="getPostAuthorName(post)" size="sm" />
+        <span class="username">{{ getPostAuthorUsername(post) }}</span>
       </router-link>
     </header>
 
     <!-- Image -->
-    <img :src="post.image" :alt="post.caption" class="post-image" />
+    <img :src="post.image || post.image_url" :alt="post.caption || ''" class="post-image" />
 
     <!-- Actions -->
     <div class="post-actions">
@@ -80,24 +154,24 @@ async function handleComment() {
       >
         ❤️
       </button>
-      <span class="likes-count">{{ formatCount(post.likesCount) }}</span>
+      <span class="likes-count">{{ formatCount(getPostLikesCount(post)) }}</span>
     </div>
 
     <!-- Caption -->
     <div v-if="post.caption" class="post-caption">
-      <strong>{{ post.author.username }}</strong> {{ post.caption }}
+      <strong>{{ getPostAuthorUsername(post) }}</strong> {{ post.caption }}
     </div>
 
     <!-- Date -->
-    <div class="post-date">{{ timeAgo(post.createdAt) }}</div>
+    <div class="post-date">{{ timeAgo(getPostCreatedAt(post)) }}</div>
 
     <!-- Comments -->
     <div class="comments">
-      <div v-for="comment in post.comments" :key="comment.id" class="comment">
-        <Avatar :src="comment.author.avatar" :alt="comment.author.name" size="sm" />
+      <div v-for="comment in (post.comments || [])" :key="comment.id" class="comment">
+        <Avatar :src="getCommentAuthor(comment)?.avatar" :alt="getCommentAuthorName(comment)" size="sm" />
         <div class="comment-content">
-          <strong>{{ comment.author.username }}</strong> {{ comment.body }}
-          <small class="comment-date">{{ timeAgo(comment.createdAt) }}</small>
+          <strong>{{ getCommentAuthorUsername(comment) }}</strong> {{ comment.body }}
+          <small class="comment-date">{{ timeAgo(comment.createdAt || comment.created_at) }}</small>
         </div>
       </div>
     </div>
@@ -114,6 +188,7 @@ async function handleComment() {
         Publicar
       </button>
     </form>
+    <small v-if="commentErrorMessage" class="comment-error">{{ commentErrorMessage }}</small>
   </div>
 </template>
 
@@ -227,5 +302,12 @@ async function handleComment() {
 .comment-submit:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.comment-error {
+  display: block;
+  color: #dc3545;
+  padding: 0 12px 12px;
+  font-size: 12px;
 }
 </style>

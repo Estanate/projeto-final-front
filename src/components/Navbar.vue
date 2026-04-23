@@ -1,7 +1,14 @@
 <script setup>
 import { useAuthStore } from '@/stores/auth';
+import { useRouter } from 'vue-router';
 
 const auth = useAuthStore();
+const router = useRouter();
+
+async function handleLogout() {
+  await auth.logout();
+  router.push('/login');
+}
 </script>
 
 <template>
@@ -22,6 +29,10 @@ const auth = useAuthStore();
       <span class="icon">👤</span>
       <span class="label">Perfil</span>
     </router-link>
+    <button type="button" class="nav-button" aria-label="Sair" @click="handleLogout">
+      <span class="icon">🚪</span>
+      <span class="label">Sair</span>
+    </button>
   </nav>
 </template>
 
@@ -38,6 +49,13 @@ const auth = useAuthStore();
 
   background: white;
   border-top: 1px solid var(--color-border);
+}
+
+.nav-button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
 }
 
 /* Desktop: sidebar */
@@ -57,7 +75,8 @@ const auth = useAuthStore();
     border-right: 1px solid var(--color-border);
   }
 
-  .navbar a {
+  .navbar a,
+  .navbar .nav-button {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -75,7 +94,8 @@ const auth = useAuthStore();
 
 /* Mobile */
 @media (max-width: 767px) {
-  .navbar a {
+  .navbar a,
+  .navbar .nav-button {
     font-size: 24px;
     text-decoration: none;
   }

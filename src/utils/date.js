@@ -1,6 +1,9 @@
 export function timeAgo(dateString) {
+  if (!dateString) return 'agora';
+
   const now = new Date();
   const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return 'agora';
   const diffInSeconds = Math.floor((now - date) / 1000);
 
   if (diffInSeconds < 60) return 'agora';

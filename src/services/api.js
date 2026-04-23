@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL, // NUNCA hardcoded
+  // Em desenvolvimento, usa proxy do Vite para evitar problemas de CORS entre portas.
+  baseURL: import.meta.env.DEV ? '/api' : import.meta.env.VITE_API_URL,
   timeout: 5000, // 5 seconds timeout
 });
 

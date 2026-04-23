@@ -8,6 +8,45 @@ import { formatCount } from '@/utils/format';
 const feed = useFeedStore();
 
 const commentInputs = ref({}); // postId => comment text
+const commentErrors = ref({}); // postId => error text
+
+function getPostAuthor(post) {
+  return post?.author || post?.user || post?.owner || null;
+}
+
+function getPostAuthorUsername(post) {
+  return getPostAuthor(post)?.username || post?.username || 'usuario';
+}
+
+function getPostAuthorName(post) {
+  const author = getPostAuthor(post);
+  return author?.name || getPostAuthorUsername(post);
+}
+
+function getCommentAuthor(comment) {
+  return comment?.author || comment?.user || comment?.owner || null;
+}
+
+function getCommentAuthorUsername(comment) {
+  return getCommentAuthor(comment)?.username || comment?.username || 'usuario';
+}
+
+function getPostLikesCount(post) {
+  if (Number.isFinite(Number(post?.likesCount))) return Number(post.likesCount);
+  if (Number.isFinite(Number(post?.likes_count))) return Number(post.likes_count);
+  if (Number.isFinite(Number(post?.likeCount))) return Number(post.likeCount);
+  if (Array.isArray(post?.likes)) return post.likes.length;
+  return 0;
+}
+
+function getPostIsLiked(post) {
+  const value = post?.isLiked ?? post?.is_liked ?? post?.liked;
+  return value === true || value === 1 || value === '1';
+}
+
+function getPostCreatedAt(post) {
+  return post?.createdAt || post?.created_at || post?.posted_at || post?.date || null;
+}
 
 onMounted(() => {
   feed.fetchFeed();
@@ -21,8 +60,13 @@ async function handleComment(postId) {
   const body = commentInputs.value[postId]?.trim();
   if (!body) return;
 
-  await feed.addComment(postId, body);
-  commentInputs.value[postId] = '';
+  commentErrors.value[postId] = '';
+  try {
+    await feed.addComment(postId, body);
+    commentInputs.value[postId] = '';
+  } catch (error) {
+    commentErrors.value[postId] = 'Nao foi possivel salvar o comentario.';
+  }
 }
 
 function getCommentInput(postId) {
@@ -47,40 +91,40 @@ function setCommentInput(postId, value) {
     <div v-else class="posts">
       <article v-for="post in feed.feedPosts" :key="post.id" class="post-card">
         <!-- Header -->
-        <header class="post-header">
-          <router-link :to="`/perfil?user=${post.author.username}`" class="author">
-            <Avatar :src="post.author.avatar" :alt="post.author.name" size="sm" />
-            <span class="username">{{ post.author.username }}</span>
+        <header v-if="getPostAuthor(post)" class="post-header">
+          <router-link :to="`/perfil?user=${getPostAuthorUsername(post)}`" class="author">
+            <Avatar :src="getPostAuthor(post)?.avatar" :alt="getPostAuthorName(post)" size="sm" />
+            <span class="username">{{ getPostAuthorUsername(post) }}</span>
           </router-link>
         </header>
 
         <!-- Image -->
-        <img :src="post.image" :alt="post.caption" class="post-image" />
+        <img :src="post.image || post.image_url" :alt="post.caption || ''" class="post-image" />
 
         <!-- Actions -->
         <div class="post-actions">
           <button
             @click="handleLike(post.id)"
-            :class="['like-btn', { liked: post.isLiked }]"
+            :class="['like-btn', { liked: getPostIsLiked(post) }]"
             aria-label="Curtir"
           >
             ❤️
           </button>
-          <span class="likes-count">{{ formatCount(post.likesCount) }}</span>
+          <span class="likes-count">{{ formatCount(getPostLikesCount(post)) }}</span>
         </div>
 
         <!-- Caption -->
         <div v-if="post.caption" class="post-caption">
-          <strong>{{ post.author.username }}</strong> {{ post.caption }}
+          <strong>{{ getPostAuthorUsername(post) }}</strong> {{ post.caption }}
         </div>
 
         <!-- Date -->
-        <div class="post-date">{{ timeAgo(post.createdAt) }}</div>
+        <div class="post-date">{{ timeAgo(getPostCreatedAt(post)) }}</div>
 
         <!-- Comments -->
         <div v-if="post.comments?.length" class="comments">
           <div v-for="comment in post.comments.slice(0, 2)" :key="comment.id" class="comment">
-            <strong>{{ comment.author.username }}</strong> {{ comment.body }}
+            <strong>{{ getCommentAuthorUsername(comment) }}</strong> {{ comment.body }}
           </div>
           <div v-if="post.comments.length > 2" class="more-comments">
             Ver todos os {{ post.comments.length }} comentários
@@ -99,6 +143,7 @@ function setCommentInput(postId, value) {
             Publicar
           </button>
         </form>
+        <small v-if="commentErrors[post.id]" class="comment-error">{{ commentErrors[post.id] }}</small>
       </article>
 
       <!-- Load More -->
@@ -226,6 +271,13 @@ function setCommentInput(postId, value) {
 .comment-submit:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.comment-error {
+  display: block;
+  color: #dc3545;
+  padding: 0 12px 12px;
+  font-size: 12px;
 }
 
 .load-more {

@@ -14,7 +14,9 @@ const hasMore = ref(true);
 
 onMounted(() => {
   fetchSuggestions();
-  fetchFollowing();
+  if (auth.user) {
+    fetchFollowing();
+  }
 });
 
 async function fetchSuggestions() {
@@ -40,9 +42,11 @@ async function fetchSuggestions() {
 }
 
 async function fetchFollowing() {
+  if (!auth.user) return;
   try {
     const { data } = await api.get(`/users/${auth.user.id}/following`);
-    following.value = new Set(data.map(u => u.id));
+    // Corrige para acessar data.data, que é o array de usuários
+    following.value = new Set((data.data || []).map(u => u.id));
   } catch (error) {
     console.error(error);
   }

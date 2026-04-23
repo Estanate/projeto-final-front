@@ -101,18 +101,18 @@ const router = createRouter({
 
 // 🔐 GUARDS
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to) => {
   const auth = useAuthStore();
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    return next('/login');
+    return '/login';
   }
 
   if (to.meta.requiresGuest && auth.isAuthenticated) {
-    return next('/feed');
+    return '/feed';
   }
 
-  next();
+  return true;
 });
 
 export default router;

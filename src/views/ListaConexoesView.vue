@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';
@@ -11,34 +11,57 @@ const auth = useAuthStore();
 const users = ref([]);
 const isLoading = ref(true);
 const title = ref('');
+const errorMessage = ref('');
 
-const type = route.params.type; // 'seguidores' or 'seguindo'
-const targetUsername = route.query.user || auth.user.username;
+const type = computed(() => route.params.type); // 'seguidores' or 'seguindo'
+const targetUsername = computed(() => route.query.user || auth.user?.username);
 
-const isOwnList = computed(() => !route.query.user || route.query.user === auth.user.username);
+const isOwnList = computed(() => !route.query.user || route.query.user === auth.user?.username);
 
 onMounted(async () => {
   await fetchList();
 });
 
+watch(
+  () => [route.params.type, route.query.user],
+  async () => {
+    await fetchList();
+  }
+);
+
 async function fetchList() {
   isLoading.value = true;
+  errorMessage.value = '';
   try {
+    if (!targetUsername.value) {
+      users.value = [];
+      return;
+    }
+
+    // Endpoints de followers/following usam ID; quando vier username na rota, resolve primeiro.
+    const { data: userData } = await api.get(`/users/${targetUsername.value}`);
+    const targetUserId = userData?.id;
+    if (!targetUserId) {
+      throw new Error('Usuario alvo sem id');
+    }
+
     let endpoint;
-    if (type === 'seguidores') {
-      endpoint = `/users/${targetUsername}/followers`;
-      title.value = isOwnList.value ? 'Seguidores' : `Seguidores de ${targetUsername}`;
-    } else if (type === 'seguindo') {
-      endpoint = `/users/${targetUsername}/following`;
-      title.value = isOwnList.value ? 'Seguindo' : `Pessoas que ${targetUsername} segue`;
+    if (type.value === 'seguidores') {
+      endpoint = `/users/${targetUserId}/followers`;
+      title.value = isOwnList.value ? 'Seguidores' : `Seguidores de ${targetUsername.value}`;
+    } else if (type.value === 'seguindo') {
+      endpoint = `/users/${targetUserId}/following`;
+      title.value = isOwnList.value ? 'Seguindo' : `Pessoas que ${targetUsername.value} segue`;
     } else {
       throw new Error('Tipo inválido');
     }
 
     const { data } = await api.get(endpoint);
-    users.value = data;
+    users.value = Array.isArray(data) ? data : (data?.data || []);
   } catch (error) {
     console.error(error);
+    users.value = [];
+    errorMessage.value = 'Nao foi possivel carregar esta lista.';
   } finally {
     isLoading.value = false;
   }
@@ -51,6 +74,10 @@ async function fetchList() {
 
     <div v-if="isLoading" class="text-center py-4">
       Carregando...
+    </div>
+
+    <div v-else-if="errorMessage" class="text-center py-4 text-danger">
+      {{ errorMessage }}
     </div>
 
     <div v-else-if="!users.length" class="text-center py-4">
