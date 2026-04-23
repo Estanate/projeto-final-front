@@ -14,6 +14,7 @@ import Navbar from '@/components/Navbar.vue';
 
 <style scoped>
 .content {
+<<<<<<< HEAD
   padding-bottom: 60px; /* mobile: evita navbar sobrepor */
 }
 
@@ -22,5 +23,9 @@ import Navbar from '@/components/Navbar.vue';
     padding-bottom: 0;
     padding-left: 80px; /* desktop: evita sidebar */
   }
+=======
+  padding-bottom: 60px; 
+  /* 👉 evita navbar sobrepor no mobile */
+>>>>>>> 8d405da7f4fb4669ea93ec0c71f7547d24519061
 }
 </style>
