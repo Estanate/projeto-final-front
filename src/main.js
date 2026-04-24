@@ -14,10 +14,13 @@ const app = createApp(App);
 
 app.use(createPinia()); // Estado global centralizado
 
-// Inicializa auth store (carrega token salvo e usuario)
-const auth = useAuthStore();
-auth.init();
+async function bootstrap() {
+  // Inicializa auth store (carrega token salvo e usuario)
+  const auth = useAuthStore();
+  await auth.init();
 
-app.use(router);        // Roteamento SPA
+  app.use(router);        // Roteamento SPA
+  app.mount('#app');
+}
 
-app.mount('#app');
+bootstrap();

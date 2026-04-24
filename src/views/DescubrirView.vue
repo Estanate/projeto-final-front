@@ -1,9 +1,11 @@
 <script setup>
 import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';
 import Avatar from '@/components/ui/Avatar.vue';
 
+const router = useRouter();
 const auth = useAuthStore();
 
 const suggestions = ref([]);
@@ -67,6 +69,15 @@ async function toggleFollow(user) {
     console.error(error);
   }
 }
+
+function openProfile(user) {
+  if (!user?.username) return;
+  if (auth.user?.username && user.username === auth.user.username) {
+    router.push('/perfil');
+    return;
+  }
+  router.push(`/perfil?user=${user.username}`);
+}
 </script>
 
 <template>
@@ -78,7 +89,7 @@ async function toggleFollow(user) {
         v-for="user in suggestions"
         :key="user.id"
         class="user-card"
-        @click="$router.push(`/perfil?user=${user.username}`)"
+        @click="openProfile(user)"
       >
         <Avatar :src="user.avatar" :alt="user.name" size="lg" />
         <div class="user-info">

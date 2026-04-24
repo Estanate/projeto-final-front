@@ -18,17 +18,41 @@ const isLoading = ref(false);
 const errors = ref({});
 
 const maxNameLength = 255;
+const maxUsernameLength = 30;
+const usernameRegex = /^[A-Za-z0-9._]+$/;
+const maxBioLength = 500;
+const maxAvatarSize = 2 * 1024 * 1024;
+const allowedAvatarTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
 const isValid = computed(() => {
-  return name.value.trim() && username.value.trim();
+  const trimmedName = name.value.trim();
+  const trimmedUsername = username.value.trim();
+  const trimmedBio = bio.value.trim();
+  return Boolean(
+    trimmedName &&
+    trimmedUsername &&
+    trimmedUsername.length <= maxUsernameLength &&
+    usernameRegex.test(trimmedUsername) &&
+    trimmedBio.length <= maxBioLength
+  );
 });
 
 function handleAvatarChange(event) {
   const file = event.target.files[0];
-  if (file && file.type.startsWith('image/')) {
-    avatarFile.value = file;
-    previewUrl.value = URL.createObjectURL(file);
+  if (!file) return;
+
+  errors.value = { ...errors.value, avatar: '' };
+  if (!allowedAvatarTypes.includes(file.type)) {
+    errors.value = { ...errors.value, avatar: 'Formato inválido. Use JPG, JPEG, PNG ou WEBP.' };
+    return;
   }
+  if (file.size > maxAvatarSize) {
+    errors.value = { ...errors.value, avatar: 'Avatar deve ter no máximo 2MB.' };
+    return;
+  }
+
+  avatarFile.value = file;
+  previewUrl.value = URL.createObjectURL(file);
 }
 
 async function handleSubmit() {
@@ -83,8 +107,9 @@ onUnmounted(() => {
         <br>
         <label class="btn btn-outline-primary mt-2">
           Alterar foto
-          <input type="file" accept="image/*" @change="handleAvatarChange" hidden />
+          <input type="file" accept="image/jpeg,image/jpg,image/png,image/webp" @change="handleAvatarChange" hidden />
         </label>
+        <small class="text-danger d-block mt-2">{{ errors.avatar }}</small>
       </div>
 
       <!-- Name -->
@@ -107,9 +132,11 @@ onUnmounted(() => {
           v-model="username"
           type="text"
           class="form-control"
+          :maxlength="maxUsernameLength"
           required
         />
         <small class="text-danger">{{ errors.username }}</small>
+        <small class="text-muted d-block">{{ username.length }}/{{ maxUsernameLength }}</small>
       </div>
 
       <!-- Bio -->
@@ -119,8 +146,10 @@ onUnmounted(() => {
           v-model="bio"
           class="form-control"
           rows="3"
+          :maxlength="maxBioLength"
         ></textarea>
         <small class="text-danger">{{ errors.bio }}</small>
+        <small class="text-muted d-block">{{ bio.length }}/{{ maxBioLength }}</small>
       </div>
 
       <!-- Submit -->

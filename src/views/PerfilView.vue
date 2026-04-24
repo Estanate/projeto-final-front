@@ -181,6 +181,14 @@ watch(
   }
 );
 
+watch(
+  () => targetUsername.value,
+  async (newUsername, oldUsername) => {
+    if (!newUsername || newUsername === oldUsername) return;
+    await fetchProfile();
+  }
+);
+
 async function toggleFollow() {
   if (isOwnProfile.value || !profile.value || !profile.value.id) return;
 

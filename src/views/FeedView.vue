@@ -1,11 +1,13 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import { useFeedStore } from '@/stores/feed';
+import { useAuthStore } from '@/stores/auth';
 import Avatar from '@/components/ui/Avatar.vue';
 import { timeAgo } from '@/utils/date';
 import { formatCount } from '@/utils/format';
 
 const feed = useFeedStore();
+const auth = useAuthStore();
 
 const commentInputs = ref({}); // postId => comment text
 const commentErrors = ref({}); // postId => error text
@@ -48,15 +50,44 @@ function getPostCreatedAt(post) {
   return post?.createdAt || post?.created_at || post?.posted_at || post?.date || null;
 }
 
-onMounted(() => {
-  feed.fetchFeed();
+function getPostCommentsCount(post) {
+  if (Number.isFinite(Number(post?.commentsCount))) return Number(post.commentsCount);
+  if (Number.isFinite(Number(post?.comments_count))) return Number(post.comments_count);
+  if (Array.isArray(post?.comments)) return post.comments.length;
+  return 0;
+}
+
+function getPostId(post) {
+  return post?.id ?? post?.post_id ?? post?.postId ?? null;
+}
+
+async function waitForAuthHydration() {
+  if (!auth.isAuthenticated) return;
+  if (auth.user?.id) return;
+
+  try {
+    await auth.fetchMe();
+  } catch (_error) {
+    // Mantem funcionamento normal mesmo se /auth/me falhar.
+  }
+}
+
+onMounted(async () => {
+  await waitForAuthHydration();
+  // Tenta carregar dados em cache primeiro
+  feed.loadFeedFromStorage();
+  
+  // Sempre sincroniza com o backend para garantir dados atualizados
+  await feed.fetchFeed();
 });
 
 async function handleLike(postId) {
+  if (!postId) return;
   await feed.toggleLike(postId);
 }
 
 async function handleComment(postId) {
+  if (!postId) return;
   const body = commentInputs.value[postId]?.trim();
   if (!body) return;
 
@@ -89,7 +120,7 @@ function setCommentInput(postId, value) {
     </div>
 
     <div v-else class="posts">
-      <article v-for="post in feed.feedPosts" :key="post.id" class="post-card">
+      <article v-for="post in feed.feedPosts" :key="getPostId(post)" class="post-card">
         <!-- Header -->
         <header v-if="getPostAuthor(post)" class="post-header">
           <router-link :to="`/perfil?user=${getPostAuthorUsername(post)}`" class="author">
@@ -104,11 +135,13 @@ function setCommentInput(postId, value) {
         <!-- Actions -->
         <div class="post-actions">
           <button
-            @click="handleLike(post.id)"
+            @click="handleLike(getPostId(post))"
             :class="['like-btn', { liked: getPostIsLiked(post) }]"
             aria-label="Curtir"
           >
-            ❤️
+            <svg class="like-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 21s-7.43-4.66-10-9.45C.09 8.14 1.79 4 5.73 4A6.33 6.33 0 0 1 12 7.09 6.33 6.33 0 0 1 18.27 4C22.21 4 23.91 8.14 22 11.55 19.43 16.34 12 21 12 21z" />
+            </svg>
           </button>
           <span class="likes-count">{{ formatCount(getPostLikesCount(post)) }}</span>
         </div>
@@ -120,6 +153,9 @@ function setCommentInput(postId, value) {
 
         <!-- Date -->
         <div class="post-date">{{ timeAgo(getPostCreatedAt(post)) }}</div>
+        <div class="post-comments-count">
+          {{ formatCount(getPostCommentsCount(post)) }} comentários
+        </div>
 
         <!-- Comments -->
         <div v-if="post.comments?.length" class="comments">
@@ -132,18 +168,18 @@ function setCommentInput(postId, value) {
         </div>
 
         <!-- Add Comment -->
-        <form @submit.prevent="handleComment(post.id)" class="comment-form">
+        <form @submit.prevent="handleComment(getPostId(post))" class="comment-form">
           <input
-            v-model="commentInputs[post.id]"
+            v-model="commentInputs[getPostId(post)]"
             type="text"
             placeholder="Adicione um comentário..."
             class="comment-input"
           />
-          <button type="submit" :disabled="!getCommentInput(post.id).trim()" class="comment-submit">
+          <button type="submit" :disabled="!getCommentInput(getPostId(post)).trim()" class="comment-submit">
             Publicar
           </button>
         </form>
-        <small v-if="commentErrors[post.id]" class="comment-error">{{ commentErrors[post.id] }}</small>
+        <small v-if="commentErrors[getPostId(post)]" class="comment-error">{{ commentErrors[getPostId(post)] }}</small>
       </article>
 
       <!-- Load More -->
@@ -208,12 +244,19 @@ function setCommentInput(postId, value) {
 .like-btn {
   background: none;
   border: none;
-  font-size: 24px;
   cursor: pointer;
+  line-height: 0;
+  color: var(--color-text-muted);
 }
 
 .like-btn.liked {
-  color: red;
+  color: #ff4d6d;
+}
+
+.like-icon {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
 }
 
 .likes-count {
@@ -227,6 +270,12 @@ function setCommentInput(postId, value) {
 
 .post-date {
   padding: 0 12px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.post-comments-count {
+  padding: 4px 12px 0;
   font-size: 12px;
   color: var(--color-text-muted);
 }

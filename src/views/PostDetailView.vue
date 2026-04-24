@@ -1,6 +1,7 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { onMounted, ref, watch, computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 import { useFeedStore } from '@/stores/feed';
 import api from '@/services/api';
 import Avatar from '@/components/ui/Avatar.vue';
@@ -8,6 +9,8 @@ import { timeAgo } from '@/utils/date';
 import { formatCount } from '@/utils/format';
 
 const route = useRoute();
+const router = useRouter();
+const auth = useAuthStore();
 const feed = useFeedStore();
 
 const post = ref(null);
@@ -15,6 +18,10 @@ const isLoading = ref(true);
 const commentBody = ref('');
 const errorMessage = ref('');
 const commentErrorMessage = ref('');
+const commentsPage = ref(1);
+const hasMoreComments = ref(false);
+const isLoadingMoreComments = ref(false);
+const isDeletingPost = ref(false);
 
 function getPostAuthor(postData) {
   return postData?.author || postData?.user || postData?.owner || null;
@@ -54,6 +61,53 @@ function getPostCreatedAt(postData) {
   return postData?.createdAt || postData?.created_at || postData?.posted_at || postData?.date || null;
 }
 
+const isPostOwner = computed(() => {
+  const postAuthor = getPostAuthor(post.value);
+  return Boolean(postAuthor?.id && auth.user?.id && Number(postAuthor.id) === Number(auth.user.id));
+});
+
+function isCommentOwner(comment) {
+  const author = getCommentAuthor(comment);
+  return Boolean(author?.id && auth.user?.id && Number(author.id) === Number(auth.user.id));
+}
+
+function extractComments(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.comments)) return payload.comments;
+  if (Array.isArray(payload?.data?.data)) return payload.data.data;
+  return [];
+}
+
+function extractMeta(payload) {
+  if (!payload || typeof payload !== 'object') return null;
+  return payload.meta || payload.pagination || null;
+}
+
+function normalizeComment(comment) {
+  if (!comment) return null;
+  return {
+    ...comment,
+    id: comment.id ?? comment.comment_id ?? null,
+    body: comment.body ?? comment.content ?? '',
+    createdAt: comment.createdAt ?? comment.created_at ?? null,
+  };
+}
+
+function mergeComments(current, incoming) {
+  const byKey = new Map();
+  [...current, ...incoming].forEach((comment, index) => {
+    const normalized = normalizeComment(comment);
+    if (!normalized) return;
+    const key = normalized.id != null
+      ? `id:${normalized.id}`
+      : `idx:${normalized.createdAt || ''}:${normalized.body}:${index}`;
+    byKey.set(key, normalized);
+  });
+  return Array.from(byKey.values());
+}
+
 onMounted(async () => {
   await fetchPost();
 });
@@ -68,6 +122,8 @@ watch(
 async function fetchPost() {
   isLoading.value = true;
   errorMessage.value = '';
+  commentsPage.value = 1;
+  hasMoreComments.value = false;
 
   const postId = route.params.postId;
   const cachedPost = feed.getPostById(postId);
@@ -87,6 +143,7 @@ async function fetchPost() {
 
     const payload = response.data?.data ?? response.data;
     post.value = payload;
+    await loadCommentsPage(1, true);
   } catch (error) {
     console.error(error);
 
@@ -95,6 +152,41 @@ async function fetchPost() {
     }
   } finally {
     isLoading.value = false;
+  }
+}
+
+async function loadCommentsPage(page = 1, replace = false) {
+  const postId = route.params.postId;
+  const commentsResponse = await api.get(`/posts/${postId}/comments?page=${page}`);
+  const comments = extractComments(commentsResponse.data).map(normalizeComment).filter(Boolean);
+  const meta = extractMeta(commentsResponse.data);
+
+  if (!post.value) return;
+  if (replace) {
+    post.value.comments = comments;
+  } else {
+    post.value.comments = mergeComments(post.value.comments || [], comments);
+  }
+
+  if (meta?.current_page && meta?.last_page) {
+    hasMoreComments.value = Number(meta.current_page) < Number(meta.last_page);
+  } else if (meta?.next_page_url) {
+    hasMoreComments.value = Boolean(meta.next_page_url);
+  } else {
+    hasMoreComments.value = comments.length > 0;
+  }
+}
+
+async function handleLoadMoreComments() {
+  if (isLoadingMoreComments.value || !hasMoreComments.value) return;
+  isLoadingMoreComments.value = true;
+  try {
+    commentsPage.value += 1;
+    await loadCommentsPage(commentsPage.value, false);
+  } catch (_error) {
+    commentsPage.value -= 1;
+  } finally {
+    isLoadingMoreComments.value = false;
   }
 }
 
@@ -116,10 +208,38 @@ async function handleComment() {
       body: commentBody.value.trim(),
     });
     commentBody.value = '';
-    await fetchPost();
+    await loadCommentsPage(1, true);
   } catch (error) {
     console.error(error);
     commentErrorMessage.value = 'Nao foi possivel salvar o comentario.';
+  }
+}
+
+async function handleDeleteComment(commentId) {
+  if (!commentId) return;
+
+  try {
+    await api.delete(`/comments/${commentId}`);
+    post.value.comments = (post.value.comments || []).filter((comment) => comment.id !== commentId);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function handleDeletePost() {
+  if (!post.value?.id || isDeletingPost.value) return;
+  const confirmed = window.confirm('Tem certeza que deseja excluir esta publicacao?');
+  if (!confirmed) return;
+
+  isDeletingPost.value = true;
+  try {
+    await api.delete(`/posts/${post.value.id}`);
+    feed.removePost(post.value.id);
+    router.push('/feed');
+  } catch (error) {
+    console.error(error);
+  } finally {
+    isDeletingPost.value = false;
   }
 }
 </script>
@@ -152,7 +272,9 @@ async function handleComment() {
         :class="['like-btn', { liked: post.isLiked }]"
         aria-label="Curtir"
       >
-        ❤️
+        <svg class="like-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 21s-7.43-4.66-10-9.45C.09 8.14 1.79 4 5.73 4A6.33 6.33 0 0 1 12 7.09 6.33 6.33 0 0 1 18.27 4C22.21 4 23.91 8.14 22 11.55 19.43 16.34 12 21 12 21z" />
+        </svg>
       </button>
       <span class="likes-count">{{ formatCount(getPostLikesCount(post)) }}</span>
     </div>
@@ -164,6 +286,11 @@ async function handleComment() {
 
     <!-- Date -->
     <div class="post-date">{{ timeAgo(getPostCreatedAt(post)) }}</div>
+    <div v-if="isPostOwner" class="post-owner-actions">
+      <button class="btn btn-outline-danger btn-sm" :disabled="isDeletingPost" @click="handleDeletePost">
+        Excluir publicação
+      </button>
+    </div>
 
     <!-- Comments -->
     <div class="comments">
@@ -173,7 +300,22 @@ async function handleComment() {
           <strong>{{ getCommentAuthorUsername(comment) }}</strong> {{ comment.body }}
           <small class="comment-date">{{ timeAgo(comment.createdAt || comment.created_at) }}</small>
         </div>
+        <button
+          v-if="isCommentOwner(comment)"
+          class="comment-delete"
+          @click="handleDeleteComment(comment.id)"
+        >
+          Excluir
+        </button>
       </div>
+      <button
+        v-if="hasMoreComments"
+        class="btn btn-outline-primary btn-sm w-100"
+        :disabled="isLoadingMoreComments"
+        @click="handleLoadMoreComments"
+      >
+        {{ isLoadingMoreComments ? 'Carregando...' : 'Carregar mais comentários' }}
+      </button>
     </div>
 
     <!-- Add Comment -->
@@ -231,12 +373,19 @@ async function handleComment() {
 .like-btn {
   background: none;
   border: none;
-  font-size: 24px;
   cursor: pointer;
+  line-height: 0;
+  color: var(--color-text-muted);
 }
 
 .like-btn.liked {
-  color: red;
+  color: #ff4d6d;
+}
+
+.like-icon {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
 }
 
 .likes-count {
@@ -254,6 +403,10 @@ async function handleComment() {
   color: var(--color-text-muted);
 }
 
+.post-owner-actions {
+  padding: 8px 12px 12px;
+}
+
 .comments {
   padding: 0 12px;
   max-height: 400px;
@@ -264,6 +417,7 @@ async function handleComment() {
   display: flex;
   gap: 8px;
   margin-bottom: 12px;
+  align-items: flex-start;
 }
 
 .comment-content {
@@ -275,6 +429,14 @@ async function handleComment() {
   display: block;
   color: var(--color-text-muted);
   margin-top: 2px;
+}
+
+.comment-delete {
+  border: none;
+  background: transparent;
+  color: #dc3545;
+  font-size: 12px;
+  cursor: pointer;
 }
 
 .comment-form {

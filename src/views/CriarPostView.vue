@@ -14,6 +14,7 @@ const errorMessage = ref('');
 
 const maxCaptionLength = 2200;
 const maxFileSize = 5 * 1024 * 1024; // 5MB
+const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
 const isValid = computed(() => {
   return imageFile.value && caption.value.trim().length > 0 && caption.value.length <= maxCaptionLength;
@@ -39,8 +40,8 @@ function handleFileChange(event) {
     return;
   }
 
-  if (!file.type.startsWith('image/')) {
-    errorMessage.value = 'Apenas imagens são permitidas';
+  if (!allowedImageTypes.includes(file.type)) {
+    errorMessage.value = 'Formato inválido. Use JPG, JPEG, PNG ou WEBP.';
     return;
   }
 
@@ -89,7 +90,7 @@ onUnmounted(() => {
         <label class="form-label">Imagem</label>
         <input
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/jpg,image/png,image/webp"
           @change="handleFileChange"
           class="form-control"
           required

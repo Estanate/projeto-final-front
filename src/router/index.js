@@ -77,6 +77,12 @@ const routes = [
         path: '/perfil/lista/:type',
         component: ListaConexoesView,
         meta: { requiresAuth: true },
+        beforeEnter: (to) => {
+          if (!['seguidores', 'seguindo'].includes(String(to.params.type || ''))) {
+            return '/perfil';
+          }
+          return true;
+        },
       },
       {
         path: '/posts/:postId',
