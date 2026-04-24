@@ -97,13 +97,17 @@ function normalizeComment(comment) {
 
 function mergeComments(current, incoming) {
   const byKey = new Map();
-  [...current, ...incoming].forEach((comment, index) => {
+  // Adiciona comentários existentes primeiro
+  (current || []).forEach((comment) => {
     const normalized = normalizeComment(comment);
-    if (!normalized) return;
-    const key = normalized.id != null
-      ? `id:${normalized.id}`
-      : `idx:${normalized.createdAt || ''}:${normalized.body}:${index}`;
-    byKey.set(key, normalized);
+    if (!normalized || !normalized.id) return;
+    byKey.set(`id:${normalized.id}`, normalized);
+  });
+  // Adiciona comentários novos
+  (incoming || []).forEach((comment) => {
+    const normalized = normalizeComment(comment);
+    if (!normalized || !normalized.id) return;
+    byKey.set(`id:${normalized.id}`, normalized);
   });
   return Array.from(byKey.values());
 }
@@ -162,18 +166,23 @@ async function loadCommentsPage(page = 1, replace = false) {
   const meta = extractMeta(commentsResponse.data);
 
   if (!post.value) return;
+  
   if (replace) {
+    // Primeira vez que carrega comentários - substitui tudo
     post.value.comments = comments;
   } else {
-    post.value.comments = mergeComments(post.value.comments || [], comments);
+    // Carregando mais comentários - adiciona aos existentes
+    post.value.comments = [...(post.value.comments || []), ...comments];
   }
 
+  // Atualiza flag de mais comentários baseado na paginação
   if (meta?.current_page && meta?.last_page) {
     hasMoreComments.value = Number(meta.current_page) < Number(meta.last_page);
   } else if (meta?.next_page_url) {
     hasMoreComments.value = Boolean(meta.next_page_url);
   } else {
-    hasMoreComments.value = comments.length > 0;
+    // Se recebeu comentários e está na primeira página, assume que há mais se recebeu a quantidade máxima
+    hasMoreComments.value = page === 1 && comments.length > 0;
   }
 }
 
@@ -409,7 +418,7 @@ async function handleDeletePost() {
 
 .comments {
   padding: 0 12px;
-  max-height: 400px;
+  max-height: 600px;
   overflow-y: auto;
 }
 

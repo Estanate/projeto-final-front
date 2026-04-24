@@ -4,12 +4,12 @@ Lista de tarefas para reconstruir o frontend. Cada item descreve comportamento e
 
 ## 1 - Setup do Projeto
 
-- [ ] Inicializar projeto com Vue 3 + Vite
-- [ ] Estrutura de pastas por dominio: `components/`, `composables/`, `layouts/`, `router/`, `services/`, `stores/`, `views/`
-- [ ] Vue Router com rota curinga `/:pathMatch(.*)*` servindo uma view `NotFound`
-- [ ] Pinia para estado compartilhado (`auth`, `feed`)
-- [ ] Tema global em `src/assets/styles/theme.css` (importado no `main.js` apos Bootstrap)
-- [ ] Cliente axios centralizado em `src/services/api.js`:
+- [ x ] Inicializar projeto com Vue 3 + Vite
+- [ x ] Estrutura de pastas por dominio: `components/`, `composables/`, `layouts/`, `router/`, `services/`, `stores/`, `views/`
+- [ x ] Vue Router com rota curinga `/:pathMatch(.*)*` servindo uma view `NotFound`
+- [ x ] Pinia para estado compartilhado (`auth`, `feed`)
+- [ x ] Tema global em `src/assets/styles/theme.css` (importado no `main.js` apos Bootstrap)
+- [ x ] Cliente axios centralizado em `src/services/api.js`:
   - baseURL lida de `import.meta.env.VITE_API_URL`
   - interceptor de request injeta `Authorization: Bearer <token>` quando existe token
   - interceptor de response trata `401`: limpa token, redireciona para `/login`

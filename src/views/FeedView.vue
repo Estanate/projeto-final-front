@@ -162,9 +162,9 @@ function setCommentInput(postId, value) {
           <div v-for="comment in post.comments.slice(0, 2)" :key="comment.id" class="comment">
             <strong>{{ getCommentAuthorUsername(comment) }}</strong> {{ comment.body }}
           </div>
-          <div v-if="post.comments.length > 2" class="more-comments">
+          <router-link v-if="post.comments.length > 2" :to="`/posts/${getPostId(post)}`" class="more-comments">
             Ver todos os {{ post.comments.length }} comentários
-          </div>
+          </router-link>
         </div>
 
         <!-- Add Comment -->
