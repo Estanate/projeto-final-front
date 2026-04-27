@@ -7,7 +7,7 @@ import Spinner from '@/components/ui/Spinner.vue';
 const auth = useAuthStore();
 const router = useRouter();
 
-// 🔹 estado LOCAL
+//definição dos campos do formulário e estados de erro/carregamento
 const name = ref('');
 const username = ref('');
 const email = ref('');
@@ -17,9 +17,11 @@ const password_confirmation = ref('');
 const errors = ref({});
 const isLoading = ref(false);
 
+//função de validação do formulario
 function validate() {
   errors.value = {};
 
+  //se os campos estiverem vazios adiciona mensagens de erro ao objeto errors
   if (!name.value) errors.value.name = 'Nome obrigatório';
 
   if (!username.value) {
@@ -41,9 +43,11 @@ function validate() {
   return Object.keys(errors.value).length === 0;
 }
 
+//função de envio do formulário
 async function handleSubmit() {
   if (!validate()) return;
 
+  // tenta registrar o usuário no backend usando a autenticação
   try {
     isLoading.value = true;
 
@@ -66,6 +70,7 @@ async function handleSubmit() {
 </script>
 
 <template>
+  //formulario para a criação de uma nova conta, atribuindo o valor do formulario a sua respectiva const com o v-model
   <form @submit.prevent="handleSubmit">
     <input v-model="name" class="form-control mb-2" placeholder="Nome" />
     <small class="text-danger">{{ errors.name }}</small>
@@ -87,6 +92,7 @@ async function handleSubmit() {
       <span v-else>Cadastrar</span>
     </button>
 
+     //redirecionamento a tela de login caso o usuario tenha se enganado
     <p class="mt-3 text-center">
       Já tem conta?
       <router-link to="/login">Entrar</router-link>

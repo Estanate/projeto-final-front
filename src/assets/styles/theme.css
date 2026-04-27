@@ -13,7 +13,7 @@
   --radius-full:          9999px;
 }
 
-/* Reset básico */
+/* reset basico */
 *,
 *::before,
 *::after {
@@ -22,7 +22,7 @@
   padding: 0;
 }
 
-/* Tipografia padrão */
+/* texto padrão */
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--color-bg);

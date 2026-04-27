@@ -16,10 +16,12 @@ const maxCaptionLength = 2200;
 const maxFileSize = 5 * 1024 * 1024; // 5MB
 const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
+//Define se a postagem é valida por: verificar se há alguma imagem na postagem, e se o texto na postagem está de acordo com o minimo e o limite
 const isValid = computed(() => {
   return imageFile.value && caption.value.trim().length > 0 && caption.value.length <= maxCaptionLength;
 });
 
+//NAO SEI
 watch(imageFile, (newFile) => {
   if (previewUrl.value) {
     URL.revokeObjectURL(previewUrl.value);

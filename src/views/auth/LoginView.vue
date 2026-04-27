@@ -7,7 +7,7 @@ import Spinner from '@/components/ui/Spinner.vue';
 const auth = useAuthStore();
 const router = useRouter();
 
-// 🔹 estado LOCAL (regra: nunca no store)
+// definiçao das consts
 const email = ref('');
 const password = ref('');
 const errorMessage = ref('');
@@ -16,7 +16,7 @@ const isLoading = ref(false);
 async function handleSubmit() {
   errorMessage.value = '';
 
-  // 🔎 validação simples
+  //checa se os campos de email e senha estiverem vazios
   if (!email.value || !password.value) {
     errorMessage.value = 'Preencha todos os campos';
     return;
