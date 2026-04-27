@@ -70,7 +70,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  //formulario para a criação de uma nova conta, atribuindo o valor do formulario a sua respectiva const com o v-model
+  <!-- formulario para a criação de uma nova conta, atribuindo o valor do formulario a sua respectiva const com o v-model -->
   <form @submit.prevent="handleSubmit">
     <input v-model="name" class="form-control mb-2" placeholder="Nome" />
     <small class="text-danger">{{ errors.name }}</small>
@@ -92,7 +92,7 @@ async function handleSubmit() {
       <span v-else>Cadastrar</span>
     </button>
 
-     //redirecionamento a tela de login caso o usuario tenha se enganado
+     <!--redirecionamento a tela de login caso o usuario tenha se enganado-->
     <p class="mt-3 text-center">
       Já tem conta?
       <router-link to="/login">Entrar</router-link>

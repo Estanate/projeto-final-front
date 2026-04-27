@@ -2,13 +2,14 @@
 
 ## Índice
 1. [Visão Geral do Projeto](#visão-geral)
-2. [Autenticação](#autenticação)
-3. [Feed de Postagens](#feed)
-4. [Serviço de API](#serviço-de-api)
-5. [Utilitários](#utilitários)
-6. [Roteamento](#roteamento)
-7. [Componentes](#componentes)
-8. [Funcionalidades Principais](#funcionalidades-principais)
+2. [Estrutura de Arquivos](#estrutura-arquivos)
+3. [Autenticação](#autenticação)
+4. [Feed de Postagens](#feed)
+5. [Serviço de API](#serviço-de-api)
+6. [Utilitários](#utilitários)
+7. [Roteamento](#roteamento)
+8. [Componentes](#componentes)
+9. [Funcionalidades Principais](#funcionalidades-principais)
 
 ---
 
@@ -29,6 +30,182 @@
 - **HTTP**: Axios com interceptadores de autenticação
 - **Estilização**: Bootstrap 5 + CSS customizado
 - **Build**: Vite
+
+---
+
+## <a name="estrutura-arquivos"></a>📁 Estrutura de Arquivos
+
+### **Raiz do Projeto**
+```
+├── compose.yaml          # Configuração Docker Compose (orquestração de containers)
+├── Dockerfile            # Configuração para build da imagem Docker
+├── package.json          # Dependências do Node.js
+├── vite.config.js        # Configuração do Vite (bundler)
+├── jsconfig.json         # Configuração de paths e alias do JavaScript
+├── index.html            # HTML principal
+├── README.md             # Documentação do projeto
+└── docker/
+    └── nginx.conf        # Configuração do servidor Nginx (produção)
+```
+
+---
+
+### **📂 src/ - Código da Aplicação**
+
+#### **`src/main.js`**
+- Arquivo de entrada da aplicação Vue
+- Inicializa o Vue, Router e Pinia
+
+#### **`src/App.vue`**
+- Componente raiz
+- Renderiza as views baseado nas rotas
+
+---
+
+### **🎨 src/assets/ - Recursos Estáticos**
+```
+assets/
+└── styles/
+    └── theme.css       # Estilos globais da aplicação
+```
+
+---
+
+### **🧩 src/components/ - Componentes Reutilizáveis**
+```
+components/
+├── Navbar.vue          # Barra de navegação principal
+└── ui/                 # Componentes UI genéricos
+    ├── Avatar.vue      # Exibe avatar do usuário
+    ├── ConfirmModal.vue # Modal de confirmação
+    └── Spinner.vue     # Animação de carregamento
+```
+
+---
+
+### **🎭 src/layouts/ - Layouts Principais**
+```
+layouts/
+├── AppLayout.vue       # Layout para usuários autenticados (com Navbar)
+└── AuthLayout.vue      # Layout para login/cadastro (sem Navbar)
+```
+
+---
+
+### **🌐 src/router/ - Roteamento**
+```
+router/
+└── index.js           # Definição de todas as rotas da aplicação
+```
+**Inclui:**
+- Rotas públicas (login, cadastro)
+- Rotas protegidas (feed, perfil, etc)
+- Guards de autenticação
+
+---
+
+### **🔌 src/services/ - Integração com API**
+```
+services/
+└── api.js             # Cliente HTTP com Axios
+```
+**Características:**
+- Interceptadores para adicionar token automaticamente
+- Tratamento de erro 401 (sessão expirada)
+
+---
+
+### **💾 src/stores/ - Gerenciamento de Estado (Pinia)**
+```
+stores/
+├── auth.js            # Estado de autenticação
+│   ├── login()
+│   ├── register()
+│   ├── logout()
+│   ├── fetchMe()
+│   └── isAuthenticated (getter)
+│
+└── feed.js            # Estado do feed de postagens
+    ├── fetchFeed()
+    ├── toggleLike()
+    ├── addComment()
+    ├── createPost()
+    └── removePost()
+```
+
+---
+
+### **🛠️ src/utils/ - Funções Utilitárias**
+```
+utils/
+├── date.js            # timeAgo() - converte datas em formato relativo
+│                      # Ex: "há 5 min", "há 2h", "há 3 dias"
+│
+└── format.js          # formatCount() - abreviar números
+                       # Ex: 1500 → "1.5k", 2300000 → "2.3M"
+```
+
+---
+
+### **📄 src/views/ - Páginas da Aplicação**
+```
+views/
+├── FeedView.vue           # Feed principal (lista de posts)
+├── DescubrirView.vue      # Descobrir novos usuários
+├── CriarPostView.vue      # Criar nova postagem
+├── PerfilView.vue         # Perfil de usuário
+├── EditarPerfilView.vue   # Editar dados do perfil
+├── PostDetailView.vue     # Detalhes de uma postagem (+ comentários)
+├── ListaConexoesView.vue  # Lista de seguidores/seguindo
+├── NotFoundView.vue       # Página 404
+│
+└── auth/                  # Views de autenticação
+    ├── LoginView.vue      # Página de login
+    └── CadastroView.vue   # Página de cadastro
+```
+
+---
+
+### **🏗️ Fluxo de Dados**
+
+```
+Views (páginas)
+    ↓
+    ├→ Chamam actions do Store (Pinia)
+    │
+    └→ O Store chama a API (services/api.js)
+        ↓
+        API retorna dados
+        ↓
+        Store armazena em estado reativo
+        ↓
+        Components reagem e atualizam UI
+```
+
+---
+
+### **📊 Organização por Funcionalidade**
+
+| Pasta | Responsabilidade | Exemplos |
+|-------|------------------|----------|
+| **views/** | Páginas completas | Feed, Perfil, Login |
+| **components/** | Componentes reutilizáveis | Navbar, Avatar, Modal |
+| **stores/** | Lógica de negócio + estado | Autenticação, Feed |
+| **services/** | Comunicação com API | Requisições HTTP |
+| **router/** | Navegação entre páginas | Rotas, Guards |
+| **utils/** | Funções auxiliares | Formatações, Datas |
+| **layouts/** | Estrutura das páginas | Com/sem Navbar |
+
+---
+
+### **🎯 Padrão Arquitetural**
+
+Esse projeto segue o padrão **Component-Based Architecture** com:
+- ✅ **Separation of Concerns** (cada pasta tem responsabilidade clara)
+- ✅ **Reusability** (componentes reutilizáveis)
+- ✅ **Scalability** (fácil adicionar novas features)
+- ✅ **State Management** (Pinia centraliza estado)
+- ✅ **API Abstraction** (API service isola requisições HTTP)
 
 ---
 
