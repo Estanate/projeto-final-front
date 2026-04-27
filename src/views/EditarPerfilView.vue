@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';
@@ -28,12 +28,15 @@ const isValid = computed(() => {
   const trimmedName = name.value.trim();
   const trimmedUsername = username.value.trim();
   const trimmedBio = bio.value.trim();
+  const hasAvatarError = Boolean(errors.value.avatar);
+
   return Boolean(
     trimmedName &&
     trimmedUsername &&
     trimmedUsername.length <= maxUsernameLength &&
     usernameRegex.test(trimmedUsername) &&
-    trimmedBio.length <= maxBioLength
+    trimmedBio.length <= maxBioLength &&
+    !hasAvatarError
   );
 });
 
@@ -41,13 +44,20 @@ function handleAvatarChange(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  errors.value = { ...errors.value, avatar: '' };
+  // Revogar URL anterior antes de criar nova (evita memory leak)
+  if (previewUrl.value && previewUrl.value !== auth.user.avatar) {
+    URL.revokeObjectURL(previewUrl.value);
+  }
+
+  // Limpa só o erro do avatar, sem afetar outros
+  delete errors.value.avatar;
+
   if (!allowedAvatarTypes.includes(file.type)) {
-    errors.value = { ...errors.value, avatar: 'Formato inválido. Use JPG, JPEG, PNG ou WEBP.' };
+    errors.value.avatar = 'Formato inválido. Use JPG, JPEG, PNG ou WEBP.';
     return;
   }
   if (file.size > maxAvatarSize) {
-    errors.value = { ...errors.value, avatar: 'Avatar deve ter no máximo 2MB.' };
+    errors.value.avatar = 'Avatar deve ter no máximo 2MB.';
     return;
   }
 
@@ -58,11 +68,26 @@ function handleAvatarChange(event) {
 async function handleSubmit() {
   if (!isValid.value) return;
 
+
+
   errors.value = {};
   isLoading.value = true;
 
   try {
-    // Update profile
+    // Faz upload do avatar primeiro (se houver), para garantir consistência
+    if (avatarFile.value) {
+      const formData = new FormData();
+      formData.append('avatar', avatarFile.value);
+
+      const { data: avatarData } = await api.post('/users/me/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      auth.updateProfile({ avatar: avatarData.avatar });
+      avatarFile.value = null; // evita reenvio acidental
+    }
+
+    // Atualiza os dados do perfil
     const { data } = await api.put('/users/me', {
       name: name.value.trim(),
       username: username.value.trim(),
@@ -71,24 +96,14 @@ async function handleSubmit() {
 
     auth.updateProfile(data);
 
-    // Update avatar if changed
-    if (avatarFile.value) {
-      const formData = new FormData();
-      formData.append('avatar', avatarFile.value);
-      const avatarData = await api.post('/users/me/avatar', formData);
-      auth.updateProfile({ avatar: avatarData.data.avatar });
-    }
-
     router.push('/perfil');
   } catch (error) {
-    errors.value = error.response?.data?.errors || {};
+    errors.value = error.response?.data?.errors || { general: 'Erro ao salvar. Tente novamente.' };
   } finally {
     isLoading.value = false;
   }
 }
 
-// Cleanup
-import { onUnmounted } from 'vue';
 onUnmounted(() => {
   if (previewUrl.value && previewUrl.value !== auth.user.avatar) {
     URL.revokeObjectURL(previewUrl.value);
@@ -101,6 +116,11 @@ onUnmounted(() => {
     <h2>Editar perfil</h2>
 
     <form @submit.prevent="handleSubmit">
+      <!-- Erro geral -->
+      <div v-if="errors.general" class="alert alert-danger">
+        {{ errors.general }}
+      </div>
+
       <!-- Avatar -->
       <div class="mb-3 text-center">
         <Avatar :src="previewUrl" :alt="name" size="lg" />
@@ -109,7 +129,7 @@ onUnmounted(() => {
           Alterar foto
           <input type="file" accept="image/jpeg,image/jpg,image/png,image/webp" @change="handleAvatarChange" hidden />
         </label>
-        <small class="text-danger d-block mt-2">{{ errors.avatar }}</small>
+        <small class="text-danger d-block mt-2">{{ Array.isArray(errors.avatar) ? errors.avatar[0] : errors.avatar }}</small>
       </div>
 
       <!-- Name -->
@@ -122,7 +142,7 @@ onUnmounted(() => {
           :maxlength="maxNameLength"
           required
         />
-        <small class="text-danger">{{ errors.name }}</small>
+        <small class="text-danger">{{ Array.isArray(errors.name) ? errors.name[0] : errors.name }}</small>
       </div>
 
       <!-- Username -->
@@ -135,7 +155,7 @@ onUnmounted(() => {
           :maxlength="maxUsernameLength"
           required
         />
-        <small class="text-danger">{{ errors.username }}</small>
+        <small class="text-danger">{{ Array.isArray(errors.username) ? errors.username[0] : errors.username }}</small>
         <small class="text-muted d-block">{{ username.length }}/{{ maxUsernameLength }}</small>
       </div>
 
@@ -148,7 +168,7 @@ onUnmounted(() => {
           rows="3"
           :maxlength="maxBioLength"
         ></textarea>
-        <small class="text-danger">{{ errors.bio }}</small>
+        <small class="text-danger">{{ Array.isArray(errors.bio) ? errors.bio[0] : errors.bio }}</small>
         <small class="text-muted d-block">{{ bio.length }}/{{ maxBioLength }}</small>
       </div>
 
@@ -158,7 +178,7 @@ onUnmounted(() => {
         :disabled="!isValid || isLoading"
         class="btn btn-primary w-100"
       >
-        Salvar
+        {{ isLoading ? 'Salvando...' : 'Salvar' }}
       </button>
     </form>
   </div>

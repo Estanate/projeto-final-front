@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 const props = defineProps({
   src: String,
@@ -11,6 +11,11 @@ const props = defineProps({
 });
 
 const error = ref(false);
+
+// Reseta o erro sempre que o src mudar
+watch(() => props.src, () => {
+  error.value = false;
+});
 
 const sizes = {
   sm: 32,
