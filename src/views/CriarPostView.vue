@@ -1,10 +1,11 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '@/services/api';
+import { useFeedStore } from '@/stores/feed';
 import Spinner from '@/components/ui/Spinner.vue';
 
 const router = useRouter();
+const feed = useFeedStore();
 
 const imageFile = ref(null);
 const previewUrl = ref(null);
@@ -60,14 +61,16 @@ async function handleSubmit() {
 
   const formData = new FormData();
   formData.append('image', imageFile.value);
+  formData.append('file', imageFile.value);
   formData.append('caption', caption.value.trim());
+  formData.append('text', caption.value.trim());
 
   try {
     isLoading.value = true;
-    await api.post('/posts', formData);
+    await feed.createPost(formData);
     router.push('/feed');
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || 'Erro ao criar post';
+    errorMessage.value = error.response?.data?.message || error.message || 'Erro ao criar post';
   } finally {
     isLoading.value = false;
   }

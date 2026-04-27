@@ -61,6 +61,33 @@ function getPostCreatedAt(postData) {
   return postData?.createdAt || postData?.created_at || postData?.posted_at || postData?.date || null;
 }
 
+function getPostIsLiked(postData) {
+  const value = postData?.isLiked ?? postData?.is_liked ?? postData?.liked ?? postData?.liked_by_me;
+  if (value === true || value === 1 || value === '1') return true;
+
+  if (Array.isArray(postData?.likes) && auth.user?.id) {
+    return postData.likes.some((like) => {
+      if (like == null) return false;
+      if (typeof like === 'number' || typeof like === 'string') {
+        return Number(like) === Number(auth.user.id);
+      }
+      return Number(like.id ?? like.user_id ?? like.userId) === Number(auth.user.id);
+    });
+  }
+
+  return false;
+}
+
+function unwrapPayload(payload) {
+  if (payload == null || typeof payload !== 'object') return payload;
+  if (Array.isArray(payload)) return payload;
+  if (payload.post) return unwrapPayload(payload.post);
+  if (payload.item) return unwrapPayload(payload.item);
+  if (payload.data) return unwrapPayload(payload.data);
+  if (payload.payload) return unwrapPayload(payload.payload);
+  return payload;
+}
+
 const isPostOwner = computed(() => {
   const postAuthor = getPostAuthor(post.value);
   return Boolean(postAuthor?.id && auth.user?.id && Number(postAuthor.id) === Number(auth.user.id));
@@ -113,6 +140,7 @@ function mergeComments(current, incoming) {
 }
 
 onMounted(async () => {
+  await feed.restoreFeedFromStorage();
   await fetchPost();
 });
 
@@ -145,8 +173,28 @@ async function fetchPost() {
       timeoutPromise,
     ]);
 
-    const payload = response.data?.data ?? response.data;
-    post.value = payload;
+    const payload = unwrapPayload(response.data);
+    const explicitLike = payload?.isLiked ?? payload?.is_liked ?? payload?.liked ?? payload?.liked_by_me;
+    const hasLikeInfo = explicitLike !== undefined && explicitLike !== null || Array.isArray(payload?.likes);
+
+    let isLiked = getPostIsLiked(payload);
+    if (!hasLikeInfo && cachedPost?.isLiked) {
+      isLiked = true;
+    }
+
+    const hasLikesCountInfo = payload?.likesCount !== undefined || payload?.likes_count !== undefined || payload?.likeCount !== undefined || Array.isArray(payload?.likes);
+    const likesCount = getPostLikesCount(payload);
+    const finalLikesCount = hasLikesCountInfo ? likesCount : (cachedPost?.likesCount ?? 0);
+
+    const normalizedPost = {
+      ...payload,
+      id: payload?.id ?? payload?.post_id ?? payload?.postId ?? postId,
+      isLiked,
+      likesCount: finalLikesCount,
+    };
+
+    post.value = normalizedPost;
+    feed.setPost(normalizedPost);
     await loadCommentsPage(1, true);
   } catch (error) {
     console.error(error);
@@ -202,10 +250,12 @@ async function handleLoadMoreComments() {
 async function handleLike() {
   if (!post.value?.id) return;
   await feed.toggleLike(post.value.id);
-  // Update local
-  post.value.isLiked = !post.value.isLiked;
-  const currentLikes = getPostLikesCount(post.value);
-  post.value.likesCount = currentLikes + (post.value.isLiked ? 1 : -1);
+
+  const storePost = feed.getPostById(post.value.id);
+  if (!storePost) return;
+
+  post.value.isLiked = storePost.isLiked;
+  post.value.likesCount = storePost.likesCount;
 }
 
 async function handleComment() {

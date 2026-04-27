@@ -194,7 +194,7 @@ async function toggleFollow() {
 
   try {
     if (isFollowing.value) {
-      await api.delete(`/users/${profile.value.id}/unfollow`);
+      await api.delete(`/users/${profile.value.id}/follow`);
       isFollowing.value = false;
       followersCount.value = Math.max(0, Number(followersCount.value || 0) - 1);
     } else {

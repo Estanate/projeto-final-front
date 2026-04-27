@@ -59,7 +59,7 @@ async function toggleFollow(user) {
 
   try {
     if (isFollowing) {
-      await api.delete(`/users/${user.id}/unfollow`);
+      await api.delete(`/users/${user.id}/follow`);
       following.value.delete(user.id);
     } else {
       await api.post(`/users/${user.id}/follow`);

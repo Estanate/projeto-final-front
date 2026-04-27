@@ -13,6 +13,7 @@ export const useFeedStore = defineStore('feed', () => {
   const nextCursor = ref(null);
   const isLoading = ref(false);
   const activeUserId = ref(null);
+  const hasLoadedStorage = ref(false);
 
   // 🔹 GETTERS
   const feedPosts = computed(() =>
@@ -55,12 +56,19 @@ export const useFeedStore = defineStore('feed', () => {
         postsById.value = storedPosts || {};
         feedOrder.value = storedOrder || [];
         nextCursor.value = storedCursor || null;
+        hasLoadedStorage.value = true;
         return true;
       }
     } catch (error) {
       console.warn('Erro ao carregar feed do localStorage:', error);
     }
+    hasLoadedStorage.value = true;
     return false;
+  }
+
+  function restoreFeedFromStorage() {
+    if (hasLoadedStorage.value) return;
+    loadFeedFromStorage();
   }
 
   function clearFeedStorage() {
@@ -72,7 +80,7 @@ export const useFeedStore = defineStore('feed', () => {
   }
 
   function getPostId(post) {
-    return post?.id ?? post?.post_id ?? post?.postId ?? null;
+    return post?.id ?? null;
   }
 
   function normalizePost(post, previousPost = null) {
@@ -81,32 +89,21 @@ export const useFeedStore = defineStore('feed', () => {
 
     const normalized = { ...post };
     normalized.id = postId;
-    const likesCount = Number(
-      normalized.likesCount ??
-      normalized.likes_count ??
-      normalized.likeCount ??
-      (Array.isArray(normalized.likes) ? normalized.likes.length : 0)
-    );
+    const likesCount = Number(normalized.likes_count ?? normalized.likesCount ?? normalized.likeCount ?? (Array.isArray(normalized.likes) ? normalized.likes.length : 0));
     normalized.likesCount = Number.isFinite(likesCount) ? likesCount : 0;
 
-    const rawIsLiked =
-      normalized.isLiked ??
-      normalized.is_liked ??
-      normalized.liked;
+    const rawIsLiked = normalized.liked_by_me ?? normalized.is_liked ?? normalized.liked ?? normalized.isLiked;
     let isLiked = rawIsLiked === true || rawIsLiked === 1 || rawIsLiked === '1';
 
     if (!isLiked && Array.isArray(normalized.likes) && auth.user?.id) {
       isLiked = normalized.likes.some((like) => {
         if (like == null) return false;
-        if (typeof like === 'number' || typeof like === 'string') {
-          return Number(like) === Number(auth.user.id);
-        }
-
+        if (typeof like === 'number' || typeof like === 'string') return Number(like) === Number(auth.user.id);
         return Number(like.id ?? like.user_id ?? like.userId) === Number(auth.user.id);
       });
     }
 
-    if (!isLiked && previousPost?.isLiked === true && rawIsLiked == null) {
+    if (!isLiked && previousPost?.isLiked === true) {
       isLiked = true;
     }
 
@@ -150,16 +147,16 @@ export const useFeedStore = defineStore('feed', () => {
 
     return {
       ...comment,
-      id: comment.id ?? comment.comment_id ?? comment.uuid ?? null,
-      body: comment.body ?? comment.content ?? '',
-      createdAt: comment.createdAt ?? comment.created_at ?? null,
+      id: comment.id ?? null,
+      body: comment.body ?? '',
+      createdAt: comment.created_at ?? null,
     };
   }
 
   function getCommentKey(comment, fallbackIndex = 0) {
     if (comment?.id != null) return `id:${comment.id}`;
-    if (comment?.createdAt || comment?.created_at) {
-      return `date:${comment.createdAt || comment.created_at}:${comment.body || ''}`;
+    if (comment?.createdAt) {
+      return `date:${comment.createdAt}:${comment.body || ''}`;
     }
     if (comment?.body) return `body:${comment.body}:${fallbackIndex}`;
     return `fallback:${fallbackIndex}`;
@@ -172,9 +169,6 @@ export const useFeedStore = defineStore('feed', () => {
   function extractCommentsFromPayload(payload) {
     if (Array.isArray(payload)) return payload;
     if (Array.isArray(payload?.data)) return payload.data;
-    if (Array.isArray(payload?.items)) return payload.items;
-    if (Array.isArray(payload?.comments)) return payload.comments;
-    if (Array.isArray(payload?.data?.data)) return payload.data.data;
     return [];
   }
 
@@ -188,6 +182,18 @@ export const useFeedStore = defineStore('feed', () => {
     } catch (_error) {
       return [];
     }
+  }
+
+  function getPayloadFromResponse(response) {
+    if (response == null) return null;
+    if (Array.isArray(response)) return response;
+    if (typeof response !== 'object') return response;
+
+    if (response.post) return getPayloadFromResponse(response.post);
+    if (response.item) return getPayloadFromResponse(response.item);
+    if (response.data) return getPayloadFromResponse(response.data);
+    if (response.payload) return getPayloadFromResponse(response.payload);
+    return response;
   }
 
   // 🔹 ACTIONS
@@ -280,23 +286,30 @@ export const useFeedStore = defineStore('feed', () => {
   }
 
   async function toggleLike(postId) {
-    const post = postsById.value[postId];
+    restoreFeedFromStorage();
 
-    if (!post) return;
+    let post = postsById.value[postId];
+    if (!post) {
+      post = { id: postId, isLiked: false, likesCount: 0 };
+      postsById.value[postId] = post;
+      if (!feedOrder.value.includes(postId)) {
+        feedOrder.value.unshift(postId);
+      }
+    }
 
     const originalState = Boolean(post.isLiked);
     const originalLikesCount = Number(post.likesCount || 0);
 
     // 🔥 Atualização otimista
-    post.isLiked = !post.isLiked;
-    post.likesCount = originalLikesCount + (post.isLiked ? 1 : -1);
+    post.isLiked = !originalState;
+    post.likesCount = Math.max(0, originalLikesCount + (post.isLiked ? 1 : -1));
     saveFeedToStorage();
 
     try {
       if (post.isLiked) {
         await api.post(`/posts/${postId}/like`);
       } else {
-        await api.delete(`/posts/${postId}/unlike`);
+        await api.delete(`/posts/${postId}/like`);
       }
     } catch (error) {
       // ❌ Reverte em caso de erro
@@ -347,14 +360,32 @@ export const useFeedStore = defineStore('feed', () => {
   async function createPost(formData) {
     try {
       const { data } = await api.post('/posts', formData);
+      const postPayload = getPayloadFromResponse(data);
+      const normalizedPost = normalizePost(postPayload);
 
-      const normalizedPost = normalizePost(data);
+      if (!normalizedPost?.id) {
+        throw new Error('Resposta de criação de post inválida');
+      }
+
       postsById.value[normalizedPost.id] = normalizedPost;
       feedOrder.value.unshift(normalizedPost.id);
       saveFeedToStorage();
+      return normalizedPost;
     } catch (error) {
       throw error;
     }
+  }
+
+  function setPost(post) {
+    const normalized = normalizePost(post, postsById.value[getPostId(post)]);
+    if (!normalized?.id) return null;
+
+    postsById.value[normalized.id] = normalized;
+    if (!feedOrder.value.includes(normalized.id)) {
+      feedOrder.value.unshift(normalized.id);
+    }
+    saveFeedToStorage();
+    return normalized;
   }
 
   function removePost(postId) {
@@ -375,8 +406,10 @@ export const useFeedStore = defineStore('feed', () => {
     createPost,
     removePost,
     getPostById,
+    setPost,
     feedPosts,
     loadFeedFromStorage,
+    restoreFeedFromStorage,
     clearFeedStorage,
   };
 });

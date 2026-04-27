@@ -42,7 +42,7 @@ function getPostLikesCount(post) {
 }
 
 function getPostIsLiked(post) {
-  const value = post?.isLiked ?? post?.is_liked ?? post?.liked;
+  const value = post?.isLiked ?? post?.is_liked ?? post?.liked ?? post?.liked_by_me;
   return value === true || value === 1 || value === '1';
 }
 

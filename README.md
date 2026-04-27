@@ -63,7 +63,7 @@ Lista de tarefas para reconstruir o frontend. Cada item descreve comportamento e
 - [ ] `GET /users/:viewerId/following` carrega quem o viewer ja segue para marcar o estado do botao
 - [ ] Botao "Seguir" / "Seguindo" por card
   - seguir: `POST /users/:id/follow`
-  - deixar de seguir: `DELETE /users/:id/unfollow`
+  - deixar de seguir: `DELETE /users/:id/follow`
 - [ ] Clique no card abre `/perfil?user=<username>` ou `/perfil` se for o proprio
 - [ ] Paginacao por pagina (`?page=<n>`)
 
@@ -87,7 +87,7 @@ Lista de tarefas para reconstruir o frontend. Cada item descreve comportamento e
 - [ ] Para perfis de terceiros, consultar `GET /users/{id}/is-following` para decidir o estado do botao
 - [ ] Acoes:
   - seguir: `POST /users/:id/follow`
-  - deixar de seguir: `DELETE /users/:id/unfollow`
+  - deixar de seguir: `DELETE /users/:id/follow`
 - [ ] Botao "Editar perfil" aparece apenas no proprio perfil e leva a `/perfil/editar`
 - [ ] Contadores de seguidores e seguindo levam a `/perfil/lista/seguidores` e `/perfil/lista/seguindo` (preservando o `?user=` quando for perfil de terceiros)
 - [ ] Grid de posts: clicar em um post abre `/posts/:postId`
@@ -159,6 +159,6 @@ Lista de tarefas para reconstruir o frontend. Cada item descreve comportamento e
 | Users | GET | `/users/:id/following` |
 | Users | GET | `/users/:id/is-following` |
 | Users | POST | `/users/:id/follow` |
-| Users | DELETE | `/users/:id/unfollow` |
+| Users | DELETE | `/users/:id/follow` |
 | Users | PUT | `/users/me` |
 | Users | POST | `/users/me/avatar` (multipart) |
