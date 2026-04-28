@@ -23,7 +23,8 @@ function validate() {
 
   if (!username.value) {
     errors.value.username = 'Username is required';
-  } else if (!/^[A-Za-z0-9._]+$/.test(username.value)) {
+  } 
+  else if (!/^[A-Za-z0-9._]+$/.test(username.value)) {
     errors.value.username = 'Invalid username';
   }
 

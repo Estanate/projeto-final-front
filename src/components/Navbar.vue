@@ -90,8 +90,7 @@ async function handleLogout() {
     border-right: 1px solid var(--color-border);
   }
 
-  .navbar a,
-  .navbar .nav-button {
+  .navbar a, .navbar .nav-button {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -108,8 +107,7 @@ async function handleLogout() {
 }
 
 @media (max-width: 767px) {
-  .navbar a,
-  .navbar .nav-button {
+  .navbar a, .navbar, .nav-button {
     font-size: 24px;
     text-decoration: none;
   }

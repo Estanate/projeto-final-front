@@ -30,6 +30,7 @@
 }
 
 .logo {
+  font-family: "Apple Chancery", "Brush Script MT", cursive;
   text-align: center;
   font-size: 32px;
   font-weight: bold;

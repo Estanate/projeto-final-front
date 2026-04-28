@@ -116,8 +116,8 @@ async function fetchIsFollowing() {
     if (status !== null) { isFollowing.value = status; return; }
     const { data: followersData } = await api.get(`/users/${profile.value.id}/followers`);
     const followers = extractItems(followersData);
-    isFollowing.value = followers.some((u) =>
-      u && ((auth.user?.id && u.id === auth.user.id) || (auth.user?.username && u.username === auth.user.username))
+    isFollowing.value = followers.some((user) =>
+      user && ((auth.user?.id && user.id === auth.user.id) || (auth.user?.username && user.username === auth.user.username))
     );
   } catch { isFollowing.value = false; }
 }

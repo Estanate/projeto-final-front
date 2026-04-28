@@ -81,15 +81,63 @@ function openProfile(user) {
 </template>
 
 <style scoped>
-.discover { max-width: 600px; margin: 0 auto; padding: 16px; }
-h2 { margin-bottom: 16px; }
-.suggestions { display: flex; flex-direction: column; gap: 16px; }
-.user-card { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); cursor: pointer; transition: background 0.2s; }
-.user-card:hover { background: var(--color-bg); }
-.user-info { flex: 1; }
-.username { font-weight: 600; }
-.name { font-size: 14px; color: var(--color-text-muted); }
-.follow-btn { padding: 6px 12px; border: 1px solid var(--color-primary); background: white; color: var(--color-primary); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; }
-.follow-btn.following { background: var(--color-primary); color: white; }
+
+.discover { 
+  max-width: 600px; 
+  margin: 0 auto; 
+  padding: 16px; 
+}
+
+h2 { 
+  margin-bottom: 16px; 
+}
+
+.suggestions { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 16px; 
+}
+
+.user-card { 
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+  padding: 12px; 
+  background: var(--color-surface); 
+  border: 1px solid var(--color-border); 
+  border-radius: var(--radius-md); 
+  cursor: pointer; 
+  transition: background 0.2s; 
+}
+
+.user-card:hover { 
+  background: var(--color-bg); 
+}
+
+.user-info { 
+  flex: 1; 
+}
+
+.username { 
+  font-weight: 600; 
+}
+
+.name { font-size: 14px; 
+  color: var(--color-text-muted); 
+}
+
+.follow-btn { padding: 6px 12px; 
+  border: 1px solid var(--color-primary); 
+  background: var(--color-primary); 
+  color: white; 
+  border-radius: var(--radius-sm); 
+  cursor: pointer; 
+  font-weight: 600; 
+}
+.follow-btn.following { 
+  background: transparent; 
+  color: var(--color-primary); 
+}
+
 </style>
 
