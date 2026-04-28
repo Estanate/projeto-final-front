@@ -57,6 +57,10 @@ function handleFileChange(event) {
 async function handleSubmit() {
   if (!isValid.value) return;
 
+  // Debug: Check what functions are available in feed store
+  console.log('Feed store functions:', Object.keys(feed));
+  console.log('createPost available:', typeof feed.createPost);
+
   const formData = new FormData();
   formData.append('image', imageFile.value);
   formData.append('file', imageFile.value);

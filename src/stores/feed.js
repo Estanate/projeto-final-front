@@ -206,6 +206,29 @@ export const useFeedStore = defineStore('feed', () => {
     saveFeedToStorage();
   }
 
+  async function createPost(formData) {
+    isLoading.value = true;
+    try {
+      const { data } = await api.post('/posts', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      const normalized = normalizePost(data);
+      if (normalized?.id) {
+        setPost(normalized);
+      }
+      
+      return normalized;
+    } catch (error) {
+      console.error('Create post error:', error);
+      throw error;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   return {
     postsById,
     feedOrder,
@@ -216,6 +239,7 @@ export const useFeedStore = defineStore('feed', () => {
     toggleLike,
     addComment,
     removePost,
+    createPost,
     getPostById: id => postsById.value[id],
     setPost,
     feedPosts,

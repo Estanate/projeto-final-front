@@ -21,14 +21,23 @@ const isOwnProfile = computed(() => !route.query.user || route.query.user === au
 const targetUsername = computed(() => route.query.user || auth.user?.username);
 
 function extractCount(payload) {
-  if (Array.isArray(payload)) return payload.length;
   if (!payload || typeof payload !== 'object') return 0;
-  if (Array.isArray(payload.data)) return payload.data.length;
-  const numericKeys = ['count', 'total', 'followers_count', 'following_count'];
+  
+  // 1. Check for Laravel pagination meta
+  if (payload.meta && Number.isFinite(Number(payload.meta.total))) {
+    return Number(payload.meta.total);
+  }
+  
+  // 2. Check for explicit count keys in the payload
+  const numericKeys = ['followers_count', 'following_count', 'posts_count', 'total', 'count'];
   for (const key of numericKeys) {
     if (Number.isFinite(Number(payload[key]))) return Number(payload[key]);
   }
-  if (payload.meta && Number.isFinite(Number(payload.meta.total))) return Number(payload.meta.total);
+  
+  // 3. Fallback to array length
+  if (Array.isArray(payload)) return payload.length;
+  if (Array.isArray(payload.data)) return payload.data.length;
+  
   return 0;
 }
 
@@ -72,6 +81,8 @@ async function fetchProfile() {
   try {
     const { data } = await api.get(`/users/${targetUsername.value}`);
     profile.value = data;
+    followersCount.value = extractCount(data);
+    followingCount.value = extractCount(data);
     await Promise.all([
       fetchPosts(),
       fetchFollowersCount(),
@@ -135,7 +146,7 @@ async function toggleFollow() {
   if (isOwnProfile.value || !profile.value?.id) return;
   try {
     if (isFollowing.value) {
-      await api.delete(`/users/${profile.value.id}/follow`);
+      await api.post(`/users/${profile.value.id}/unfollow`);
       isFollowing.value = false;
       followersCount.value = Math.max(0, Number(followersCount.value || 0) - 1);
     } else {
