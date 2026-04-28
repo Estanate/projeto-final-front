@@ -1,18 +1,5 @@
 # 📱 Documentação Completa - Projeto InstaClone
 
-## Índice
-1. [Visão Geral do Projeto](#visão-geral)
-2. [Estrutura de Arquivos](#estrutura-arquivos)
-3. [Autenticação](#autenticação)
-4. [Feed de Postagens](#feed)
-5. [Serviço de API](#serviço-de-api)
-6. [Utilitários](#utilitários)
-7. [Roteamento](#roteamento)
-8. [Componentes](#componentes)
-9. [Funcionalidades Principais](#funcionalidades-principais)
-
----
-
 ## <a name="visão-geral"></a>📊 Visão Geral do Projeto
 
 **InstaClone** é uma rede social desenvolvida com **Vue 3** que permite aos usuários:

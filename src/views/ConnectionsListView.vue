@@ -19,7 +19,7 @@ const isLoadingMore = ref(false);
 const followingIds = ref(new Set());
 const targetUserId = ref(null);
 
-const type = computed(() => route.params.type); // 'seguidores' or 'seguindo'
+const type = computed(() => route.params.type);
 const targetUsername = computed(() => route.query.user || auth.user?.username);
 
 const isOwnList = computed(() => !route.query.user || route.query.user === auth.user?.username);
@@ -45,22 +45,21 @@ async function fetchList() {
       return;
     }
 
-    // Endpoints de followers/following usam ID; quando vier username na rota, resolve primeiro.
     const { data: userData } = await api.get(`/users/${targetUsername.value}`);
     targetUserId.value = userData?.id;
     if (!targetUserId.value) {
-      throw new Error('Usuario alvo sem id');
+      throw new Error('Target user without ID');
     }
 
     let endpoint;
-    if (type.value === 'seguidores') {
+    if (type.value === 'followers') {
       endpoint = `/users/${targetUserId.value}/followers`;
-      title.value = isOwnList.value ? 'Seguidores' : `Seguidores de ${targetUsername.value}`;
-    } else if (type.value === 'seguindo') {
+      title.value = isOwnList.value ? 'Followers' : `${targetUsername.value}'s followers`;
+    } else if (type.value === 'following') {
       endpoint = `/users/${targetUserId.value}/following`;
-      title.value = isOwnList.value ? 'Seguindo' : `Pessoas que ${targetUsername.value} segue`;
+      title.value = isOwnList.value ? 'Following' : `People ${targetUsername.value} follows`;
     } else {
-      throw new Error('Tipo inválido');
+      throw new Error('Invalid type');
     }
 
     const { data } = await api.get(`${endpoint}?page=1`);
@@ -134,8 +133,8 @@ async function loadMore() {
   const nextPage = page.value + 1;
   try {
     let endpoint = '';
-    if (type.value === 'seguidores') endpoint = `/users/${targetUserId.value}/followers`;
-    if (type.value === 'seguindo') endpoint = `/users/${targetUserId.value}/following`;
+    if (type.value === 'followers') endpoint = `/users/${targetUserId.value}/followers`;
+    if (type.value === 'following') endpoint = `/users/${targetUserId.value}/following`;
     if (!endpoint) return;
 
     const { data } = await api.get(`${endpoint}?page=${nextPage}`);
@@ -152,19 +151,19 @@ async function loadMore() {
 
 function goBackToProfile() {
   const query = isOwnList.value ? {} : { user: targetUsername.value };
-  router.push({ path: '/perfil', query });
+  router.push({ path: '/profile', query });
 }
 </script>
 
 <template>
-  <div class="lista-conexoes">
+  <div class="connections-list">
     <button class="btn btn-outline-secondary btn-sm mb-3" @click="goBackToProfile">
-      Voltar para o perfil
+      Back to profile
     </button>
     <h2>{{ title }}</h2>
 
     <div v-if="isLoading" class="text-center py-4">
-      Carregando...
+      Loading...
     </div>
 
     <div v-else-if="errorMessage" class="text-center py-4 text-danger">
@@ -172,7 +171,7 @@ function goBackToProfile() {
     </div>
 
     <div v-else-if="!users.length" class="text-center py-4">
-      Nenhum usuário encontrado.
+      No users found.
     </div>
 
     <div v-else class="users-list">
@@ -180,7 +179,7 @@ function goBackToProfile() {
         v-for="user in users"
         :key="user.id"
         class="user-item"
-        @click="$router.push(`/perfil?user=${user.username}`)"
+        @click="$router.push(`/profile?user=${user.username}`)"
       >
         <Avatar :src="user.avatar" :alt="user.name" size="md" />
         <div class="user-info">
@@ -193,7 +192,7 @@ function goBackToProfile() {
           :class="isFollowing(user) ? 'btn-outline-primary' : 'btn-primary'"
           @click.stop="toggleFollow(user)"
         >
-          {{ isFollowing(user) ? 'Seguindo' : 'Seguir' }}
+          {{ isFollowing(user) ? 'Following' : 'Follow' }}
         </button>
       </div>
       <button
@@ -202,14 +201,14 @@ function goBackToProfile() {
         :disabled="isLoadingMore"
         @click="loadMore"
       >
-        {{ isLoadingMore ? 'Carregando...' : 'Carregar mais' }}
+        {{ isLoadingMore ? 'Loading...' : 'Load more' }}
       </button>
     </div>
   </div>
 </template>
 
 <style scoped>
-.lista-conexoes {
+.connections-list {
   max-width: 600px;
   margin: 0 auto;
   padding: 16px;

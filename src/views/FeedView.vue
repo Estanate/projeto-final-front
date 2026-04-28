@@ -9,8 +9,8 @@ import { formatCount } from '@/utils/format';
 const feed = useFeedStore();
 const auth = useAuthStore();
 
-const commentInputs = ref({}); // postId => comment text
-const commentErrors = ref({}); // postId => error text
+const commentInputs = ref({});
+const commentErrors = ref({});
 
 function getPostAuthor(post) {
   return post?.author || post?.user || post?.owner || null;
@@ -67,24 +67,14 @@ async function waitForAuthHydration() {
 
   try {
     await auth.fetchMe();
-  } catch (_error) {
-    // Mantem funcionamento normal mesmo se /auth/me falhar.
-  }
+  } catch (_error) {}
 }
 
 onMounted(async () => {
   await waitForAuthHydration();
-  // Tenta carregar dados em cache primeiro
-  feed.loadFeedFromStorage();
-  
-  // Sempre sincroniza com o backend para garantir dados atualizados
+  feed.restoreFeedFromStorage();
   await feed.fetchFeed();
 });
-
-async function handleLike(postId) {
-  if (!postId) return;
-  await feed.toggleLike(postId);
-}
 
 async function handleComment(postId) {
   if (!postId) return;
@@ -96,48 +86,37 @@ async function handleComment(postId) {
     await feed.addComment(postId, body);
     commentInputs.value[postId] = '';
   } catch (error) {
-    commentErrors.value[postId] = 'Nao foi possivel salvar o comentario.';
+    commentErrors.value[postId] = 'Could not save the comment.';
   }
-}
-
-function getCommentInput(postId) {
-  return commentInputs.value[postId] || '';
-}
-
-function setCommentInput(postId, value) {
-  commentInputs.value[postId] = value;
 }
 </script>
 
 <template>
   <div class="feed">
     <div v-if="feed.isLoading" class="text-center py-4">
-      Carregando...
+      Loading...
     </div>
 
     <div v-else-if="!feed.feedPosts.length" class="text-center py-4">
-      Nenhum post ainda.
+      No posts yet.
     </div>
 
     <div v-else class="posts">
       <article v-for="post in feed.feedPosts" :key="getPostId(post)" class="post-card">
-        <!-- Header -->
         <header v-if="getPostAuthor(post)" class="post-header">
-          <router-link :to="`/perfil?user=${getPostAuthorUsername(post)}`" class="author">
+          <router-link :to="`/profile?user=${getPostAuthorUsername(post)}`" class="author">
             <Avatar :src="getPostAuthor(post)?.avatar" :alt="getPostAuthorName(post)" size="sm" />
             <span class="username">{{ getPostAuthorUsername(post) }}</span>
           </router-link>
         </header>
 
-        <!-- Image -->
         <img :src="post.image || post.image_url" :alt="post.caption || ''" class="post-image" />
 
-        <!-- Actions -->
         <div class="post-actions">
           <button
-            @click="handleLike(getPostId(post))"
+            @click="feed.toggleLike(getPostId(post))"
             :class="['like-btn', { liked: getPostIsLiked(post) }]"
-            aria-label="Curtir"
+            aria-label="Like"
           >
             <svg class="like-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 21s-7.43-4.66-10-9.45C.09 8.14 1.79 4 5.73 4A6.33 6.33 0 0 1 12 7.09 6.33 6.33 0 0 1 18.27 4C22.21 4 23.91 8.14 22 11.55 19.43 16.34 12 21 12 21z" />
@@ -146,46 +125,41 @@ function setCommentInput(postId, value) {
           <span class="likes-count">{{ formatCount(getPostLikesCount(post)) }}</span>
         </div>
 
-        <!-- Caption -->
         <div v-if="post.caption" class="post-caption">
           <strong>{{ getPostAuthorUsername(post) }}</strong> {{ post.caption }}
         </div>
 
-        <!-- Date -->
         <div class="post-date">{{ timeAgo(getPostCreatedAt(post)) }}</div>
         <div class="post-comments-count">
-          {{ formatCount(getPostCommentsCount(post)) }} comentários
+          {{ formatCount(getPostCommentsCount(post)) }} comments
         </div>
 
-        <!-- Comments -->
         <div v-if="post.comments?.length" class="comments">
           <div v-for="comment in post.comments.slice(0, 2)" :key="comment.id" class="comment">
             <strong>{{ getCommentAuthorUsername(comment) }}</strong> {{ comment.body }}
           </div>
           <router-link v-if="post.comments.length > 2" :to="`/posts/${getPostId(post)}`" class="more-comments">
-            Ver todos os {{ post.comments.length }} comentários
+            View all {{ post.comments.length }} comments
           </router-link>
         </div>
 
-        <!-- Add Comment -->
         <form @submit.prevent="handleComment(getPostId(post))" class="comment-form">
           <input
             v-model="commentInputs[getPostId(post)]"
             type="text"
-            placeholder="Adicione um comentário..."
+            placeholder="Add a comment..."
             class="comment-input"
           />
-          <button type="submit" :disabled="!getCommentInput(getPostId(post)).trim()" class="comment-submit">
-            Publicar
+          <button type="submit" :disabled="!commentInputs[getPostId(post)]?.trim()" class="comment-submit">
+            Post
           </button>
         </form>
         <small v-if="commentErrors[getPostId(post)]" class="comment-error">{{ commentErrors[getPostId(post)] }}</small>
       </article>
 
-      <!-- Load More -->
       <div v-if="feed.nextCursor" class="load-more">
         <button @click="feed.loadMoreFeed()" :disabled="feed.isLoading" class="btn btn-primary">
-          Carregar mais
+          Load more
         </button>
       </div>
     </div>

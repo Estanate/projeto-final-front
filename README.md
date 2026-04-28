@@ -18,26 +18,26 @@ Lista de tarefas para reconstruir o frontend. Cada item descreve comportamento e
 
 ## 2 - Autenticacao
 
-- [ ] Tela `/login` com campos `email` e `password`
-- [ ] Tela `/cadastro` com campos `name`, `username`, `email`, `password`, `password_confirmation`
+- [ ] Screen `/login` with fields `email` and `password`
+- [ ] Screen `/register` with fields `name`, `username`, `email`, `password`, `password_confirmation`
 - [ ] Store `auth` (Pinia) com estado `user`, `token`, `isAuthenticated`, actions `login`, `register`, `logout`, `fetchMe`
 - [ ] `POST /auth/login` devolve `access_token` e `user`; salvar token em `localStorage` com chave fixa (ex.: `instaclone.token`)
 - [ ] `POST /auth/register` cria conta e ja autentica
 - [ ] `POST /auth/logout` limpa sessao local mesmo se o token ja estiver invalido
 - [ ] `GET /auth/me` hidrata o usuario atual a partir do token salvo ao entrar em rota protegida
 - [ ] Guards de rota:
-  - `requiresAuth`: sem token, redireciona para `/login`
-  - `requiresGuest`: com token, redireciona para `/feed`
+  - `requiresAuth`: without token, redirects to `/login`
+  - `requiresGuest`: with token, redirects to `/feed`
 - [ ] Mensagens de erro exibidas inline abaixo do formulario
 
 ## 3 - Layout e Navegacao
 
-- [ ] `AuthLayout` para telas de visitante (`/login`, `/cadastro`)
+- [ ] `AuthLayout` for guest screens (`/login`, `/register`)
 - [ ] `AppLayout` para area autenticada
 - [ ] Shell autenticado responsivo:
   - mobile: barra de navegacao inferior fixa
   - desktop: sidebar lateral
-- [ ] Entradas de navegacao: `Home` (`/feed`), `Buscar` (`/descobrir`), `Criar` (`/criar`), `Perfil` (`/perfil`)
+- [ ] Navigation entries: `Home` (`/feed`), `Search` (`/discover`), `Create` (`/create`), `Profile` (`/profile`)
 - [ ] `RouterView` usando `v-slot="{ Component }"` + `<component :is="Component" />` para troca de views
 
 ## 4 - Feed (`/feed`)
@@ -47,7 +47,7 @@ Lista de tarefas para reconstruir o frontend. Cada item descreve comportamento e
 - [ ] Actions do store: `fetchFeed`, `loadMoreFeed(cursor)`, `toggleLike(postId)`, `addComment(postId, body)`, `createPost(formData)`
 - [ ] Botao "carregar mais" visivel enquanto `next_cursor !== null`
 - [ ] Card de post exibe:
-  - avatar + username do autor (link para `/perfil?user=<username>`)
+  - avatar + username of author (link to `/profile?user=<username>`)
   - imagem do post
   - contador de curtidas e botao de like
   - legenda
@@ -57,17 +57,17 @@ Lista de tarefas para reconstruir o frontend. Cada item descreve comportamento e
 - [ ] Curtir: `POST /posts/:id/like`. Descurtir: `DELETE /posts/:id/unlike`. Atualizar contador de forma otimista
 - [ ] Comentar inline: `POST /posts/:id/comments` com `{ body }`
 
-## 5 - Descobrir (`/descobrir`)
+## 5 - Discover (`/discover`)
 
 - [ ] `GET /users/suggestions` lista perfis sugeridos
 - [ ] `GET /users/:viewerId/following` carrega quem o viewer ja segue para marcar o estado do botao
 - [ ] Botao "Seguir" / "Seguindo" por card
   - seguir: `POST /users/:id/follow`
   - deixar de seguir: `DELETE /users/:id/follow`
-- [ ] Clique no card abre `/perfil?user=<username>` ou `/perfil` se for o proprio
+- [ ] Click on card opens `/profile?user=<username>` or `/profile` if it's oneself
 - [ ] Paginacao por pagina (`?page=<n>`)
 
-## 6 - Criar Post (`/criar`)
+## 6 - Create Post (`/create`)
 
 - [ ] Input `<input type="file">` aceita apenas `image/jpeg`, `image/jpg`, `image/png`, `image/webp`
 - [ ] Limite de 5 MB (validar no cliente antes do upload)
@@ -77,7 +77,7 @@ Lista de tarefas para reconstruir o frontend. Cada item descreve comportamento e
 - [ ] `POST /posts` com `FormData` contendo `image` e `caption`
 - [ ] Exibir feedback de sucesso (redirecionar para `/feed`) e mensagens de erro
 
-## 7 - Perfil (`/perfil` e `/perfil?user=<username>`)
+## 7 - Profile (`/profile` and `/profile?user=<username>`)
 
 - [ ] `GET /users/{username}` resolve o perfil alvo
 - [ ] Em paralelo, carregar:
@@ -88,11 +88,11 @@ Lista de tarefas para reconstruir o frontend. Cada item descreve comportamento e
 - [ ] Acoes:
   - seguir: `POST /users/:id/follow`
   - deixar de seguir: `DELETE /users/:id/follow`
-- [ ] Botao "Editar perfil" aparece apenas no proprio perfil e leva a `/perfil/editar`
-- [ ] Contadores de seguidores e seguindo levam a `/perfil/lista/seguidores` e `/perfil/lista/seguindo` (preservando o `?user=` quando for perfil de terceiros)
+- [ ] Button "Edit profile" appears only on own profile and leads to `/profile/edit`
+- [ ] Followers and following counters lead to `/profile/list/followers` and `/profile/list/following` (preserving `?user=` when it's a third-party profile)
 - [ ] Grid de posts: clicar em um post abre `/posts/:postId`
 
-## 7.1 - Editar Perfil (`/perfil/editar`)
+## 7.1 - Edit Profile (`/profile/edit`)
 
 - [ ] `PUT /users/me` com `{ name, username, bio }`
 - [ ] `POST /users/me/avatar` com `FormData` contendo `avatar`
@@ -103,13 +103,13 @@ Lista de tarefas para reconstruir o frontend. Cada item descreve comportamento e
   - avatar: 2 MB
 - [ ] Mensagens de erro por campo vindas do backend
 
-## 8 - Listas de Conexao (`/perfil/lista/:type`)
+## 8 - Connection Lists (`/profile/list/:type`)
 
-- [ ] `:type` aceita `seguidores` ou `seguindo`
+- [ ] `:type` accepts `followers` or `following`
 - [ ] Respeita `?user=<username>` para listar conexoes de outro perfil
 - [ ] `GET /users/{id}/followers` e `GET /users/{id}/following` com paginacao por pagina
 - [ ] Cada linha mostra avatar, nome, username e botao de seguir / deixar de seguir
-- [ ] Botao de voltar para o perfil de origem
+- [ ] Button to go back to the origin profile
 
 ## 9 - Detalhes do Post (`/posts/:postId`)
 

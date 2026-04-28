@@ -17,8 +17,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'), 
-      // 👉 define "@" como raiz da pasta src
+      '@': path.resolve(__dirname, './src'),
+
     },
   },
 })

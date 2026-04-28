@@ -19,29 +19,29 @@ async function handleLogout() {
       </svg>
       <span class="label">Home</span>
     </router-link>
-    <router-link to="/descobrir" aria-label="Buscar">
+    <router-link to="/discover" aria-label="Search">
       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14zm0-2a9 9 0 1 0 5.65 16l4.17 4.18a1 1 0 0 0 1.41-1.42l-4.17-4.17A9 9 0 0 0 11 2z" />
       </svg>
-      <span class="label">Buscar</span>
+      <span class="label">Search</span>
     </router-link>
-    <router-link to="/criar" aria-label="Criar">
+    <router-link to="/create" aria-label="Create">
       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M11 5a1 1 0 0 1 2 0v6h6a1 1 0 1 1 0 2h-6v6a1 1 0 1 1-2 0v-6H5a1 1 0 1 1 0-2h6V5z" />
       </svg>
-      <span class="label">Criar</span>
+      <span class="label">Create</span>
     </router-link>
-    <router-link :to="{ path: '/perfil', query: {} }" aria-label="Perfil">
+    <router-link :to="{ path: '/profile', query: {} }" aria-label="Profile">
       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4.42 0-8 2.24-8 5v1a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1c0-2.76-3.58-5-8-5z" />
       </svg>
-      <span class="label">Perfil</span>
+      <span class="label">Profile</span>
     </router-link>
-    <button type="button" class="nav-button" aria-label="Sair" @click="handleLogout">
+    <button type="button" class="nav-button" aria-label="Logout" @click="handleLogout">
       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5a1 1 0 1 0 0-2H5V5h5a1 1 0 1 0 0-2zm6.29 4.29a1 1 0 0 0-1.41 1.42L17.17 11H9a1 1 0 1 0 0 2h8.17l-2.29 2.29a1 1 0 1 0 1.41 1.42l4-4a1 1 0 0 0 0-1.42z" />
       </svg>
-      <span class="label">Sair</span>
+      <span class="label">Logout</span>
     </button>
   </nav>
 </template>
@@ -74,7 +74,6 @@ async function handleLogout() {
   fill: currentColor;
 }
 
-/* Desktop: sidebar */
 @media (min-width: 768px) {
   .navbar {
     top: 0;
@@ -108,7 +107,6 @@ async function handleLogout() {
   }
 }
 
-/* Mobile */
 @media (max-width: 767px) {
   .navbar a,
   .navbar .nav-button {

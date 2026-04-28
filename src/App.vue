@@ -6,7 +6,7 @@ const auth = useAuthStore();
 
 onMounted(() => {
   auth.init();
-  // 👉 restaura sessão ao carregar a aplicação
+
 });
 </script>
 

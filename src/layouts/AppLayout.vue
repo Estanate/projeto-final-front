@@ -14,13 +14,13 @@ import Navbar from '@/components/Navbar.vue';
 
 <style scoped>
 .content {
-  padding-bottom: 60px; /* mobile: evita navbar sobrepor */
+  padding-bottom: 60px;
 }
 
 @media (min-width: 768px) {
   .content {
     padding-bottom: 0;
-    padding-left: 80px; /* desktop: evita sidebar */
+    padding-left: 80px;
   }
 }
-</style>  
+</style>

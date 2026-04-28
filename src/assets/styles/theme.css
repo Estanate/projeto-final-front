@@ -13,16 +13,14 @@
   --radius-full:          9999px;
 }
 
-/* reset basico */
 *,
 *::before,
 *::after {
-  box-sizing: border-box; /* evita bugs de layout */
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-/* texto padrão */
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--color-bg);
@@ -30,7 +28,6 @@ body {
   color-scheme: dark;
 }
 
-/* Classe utilitária para acessibilidade */
 .visually-hidden {
   position: absolute;
   width: 1px;

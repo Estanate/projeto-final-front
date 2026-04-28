@@ -12,7 +12,6 @@ const props = defineProps({
 
 const error = ref(false);
 
-// Reseta o erro sempre que o src mudar
 watch(() => props.src, () => {
   error.value = false;
 });

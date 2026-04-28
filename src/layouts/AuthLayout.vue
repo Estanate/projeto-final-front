@@ -6,7 +6,6 @@
     <div class="auth-container">
       <h1 class="logo">InstaClone</h1>
 
-      <!-- 👉 Aqui entra Login/Cadastro -->
       <router-view />
     </div>
   </div>

@@ -2,76 +2,49 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import api from '@/services/api';
 
+const TOKEN_KEY = 'instaclone.token';
+
 export const useAuthStore = defineStore('auth', () => {
-  // 🔹 STATE
   const user = ref(null);
   const token = ref(null);
 
-  // 🔹 GETTERS
   const isAuthenticated = computed(() => !!token.value);
-  // 👉 true se existir token
 
-  // 🔹 ACTIONS
+  function setAuth(userData, userToken) {
+    user.value = userData;
+    token.value = userToken;
+    localStorage.setItem(TOKEN_KEY, userToken);
+  }
 
   async function init() {
-    const savedToken = localStorage.getItem('instaclone.token');
+    const savedToken = localStorage.getItem(TOKEN_KEY);
+    if (!savedToken) return;
 
-    if (savedToken) {
-      token.value = savedToken;
-
-      try {
-        await fetchMe();
-      } catch (error) {
-        // 👉 Se token inválido, limpa tudo
-        logout();
-      }
+    token.value = savedToken;
+    try {
+      await fetchMe();
+    } catch {
+      logout();
     }
   }
 
   async function login(email, password) {
-    try {
-      const { data } = await api.post('/auth/login', {
-        email,
-        password,
-      });
-
-      token.value = data.access_token;
-      user.value = data.user;
-
-      localStorage.setItem('instaclone.token', data.access_token);
-      // 👉 Persistência obrigatória
-    } catch (error) {
-      throw error;
-      // 👉 Deixa a view tratar o erro (mensagem da API)
-    }
+    const { data } = await api.post('/auth/login', { email, password });
+    setAuth(data.user, data.access_token);
   }
 
-  async function register(name, username, email, password, password_confirmation) {
-    try {
-      const { data } = await api.post('/auth/register', {
-        name,
-        username,
-        email,
-        password,
-        password_confirmation,
-      });
-
-      token.value = data.access_token;
-      user.value = data.user;
-
-      localStorage.setItem('instaclone.token', data.access_token);
-    } catch (error) {
-      throw error;
-    }
+  async function register(payload) {
+    const { data } = await api.post('/auth/register', payload);
+    setAuth(data.user, data.access_token);
   }
 
   async function logout() {
     try {
       await api.post('/auth/logout');
-    } catch (error) {
-      // 👉 Ignora erro (token pode já estar inválido)
+    } catch {
+
     } finally {
-      localStorage.removeItem('instaclone.token');
+      localStorage.removeItem(TOKEN_KEY);
       token.value = null;
       user.value = null;
     }
@@ -82,17 +55,13 @@ export const useAuthStore = defineStore('auth', () => {
       const { data } = await api.get('/auth/me');
       user.value = data;
     } catch (error) {
-      await logout();
+      logout();
       throw error;
     }
   }
 
   function updateProfile(data) {
-    user.value = {
-      ...user.value,
-      ...data,
-    };
-    // 👉 Atualiza local sem precisar refazer fetch
+    user.value = { ...user.value, ...data };
   }
 
   return {

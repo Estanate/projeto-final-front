@@ -7,7 +7,6 @@ import Spinner from '@/components/ui/Spinner.vue';
 const auth = useAuthStore();
 const router = useRouter();
 
-// definiçao das consts
 const email = ref('');
 const password = ref('');
 const errorMessage = ref('');
@@ -16,9 +15,8 @@ const isLoading = ref(false);
 async function handleSubmit() {
   errorMessage.value = '';
 
-  //checa se os campos de email e senha estiverem vazios
   if (!email.value || !password.value) {
-    errorMessage.value = 'Preencha todos os campos';
+    errorMessage.value = 'Fill in all fields';
     return;
   }
 
@@ -30,7 +28,7 @@ async function handleSubmit() {
     router.replace('/feed');
   } catch (error) {
     errorMessage.value =
-      error.response?.data?.message || 'Erro ao fazer login';
+      error.response?.data?.message || 'Error logging in';
   } finally {
     isLoading.value = false;
   }
@@ -50,18 +48,18 @@ async function handleSubmit() {
     </div>
 
     <div class="mb-3">
-      <label class="visually-hidden">Senha</label>
+      <label class="visually-hidden">Password</label>
       <input
         v-model="password"
         type="password"
         class="form-control"
-        placeholder="Senha"
+        placeholder="Password"
       />
     </div>
 
     <button class="btn btn-primary w-100" :disabled="isLoading">
       <Spinner v-if="isLoading" size="sm" />
-      <span v-else>Entrar</span>
+      <span v-else>Login</span>
     </button>
 
     <p v-if="errorMessage" class="text-danger mt-2">
@@ -69,8 +67,8 @@ async function handleSubmit() {
     </p>
 
     <p class="mt-3 text-center">
-      Não tem conta?
-      <router-link to="/cadastro">Cadastre-se</router-link>
+      Don't have an account?
+      <router-link to="/register">Sign up</router-link>
     </p>
   </form>
 </template>

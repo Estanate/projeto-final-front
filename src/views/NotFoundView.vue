@@ -6,20 +6,20 @@ const auth = useAuthStore();
 
 <template>
   <div class="notfound">
-    <h1>Página não encontrada</h1>
+    <h1>Page not found</h1>
 
     <router-link
       v-if="auth.isAuthenticated"
       to="/feed"
     >
-      Voltar ao feed
+      Back to feed
     </router-link>
 
     <router-link
       v-else
       to="/login"
     >
-      Fazer login
+      Go to login
     </router-link>
   </div>
 </template>

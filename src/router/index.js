@@ -1,16 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
-// 🔥 Lazy loading obrigatório em TODAS as views
 const LoginView = () => import('@/views/auth/LoginView.vue');
-const CadastroView = () => import('@/views/auth/CadastroView.vue');
+const RegisterView = () => import('@/views/auth/RegisterView.vue');
 
 const FeedView = () => import('@/views/FeedView.vue');
-const DescubrirView = () => import('@/views/DescubrirView.vue');
-const CriarPostView = () => import('@/views/CriarPostView.vue');
-const PerfilView = () => import('@/views/PerfilView.vue');
-const EditarPerfilView = () => import('@/views/EditarPerfilView.vue');
-const ListaConexoesView = () => import('@/views/ListaConexoesView.vue');
+const DiscoverView = () => import('@/views/DiscoverView.vue');
+const CreatePostView = () => import('@/views/CreatePostView.vue');
+const ProfileView = () => import('@/views/ProfileView.vue');
+const EditProfileView = () => import('@/views/EditProfileView.vue');
+const ConnectionsListView = () => import('@/views/ConnectionsListView.vue');
 const PostDetailView = () => import('@/views/PostDetailView.vue');
 
 const AuthLayout = () => import('@/layouts/AuthLayout.vue');
@@ -18,14 +17,12 @@ const AppLayout = () => import('@/layouts/AppLayout.vue');
 
 import NotFoundView from '@/views/NotFoundView.vue';
 
-// 🔹 ROTAS
 const routes = [
   {
     path: '/',
-    redirect: '/feed', // 👉 rota raiz SEMPRE vai pro feed
+    redirect: '/feed',
   },
 
-  // 🔐 ROTAS DE VISITANTE
   {
     path: '/',
     component: AuthLayout,
@@ -36,14 +33,13 @@ const routes = [
         meta: { requiresGuest: true },
       },
       {
-        path: '/cadastro',
-        component: CadastroView,
+        path: '/register',
+        component: RegisterView,
         meta: { requiresGuest: true },
       },
     ],
   },
 
-  // 🔒 ROTAS AUTENTICADAS
   {
     path: '/',
     component: AppLayout,
@@ -54,32 +50,32 @@ const routes = [
         meta: { requiresAuth: true },
       },
       {
-        path: '/descobrir',
-        component: DescubrirView,
+        path: '/discover',
+        component: DiscoverView,
         meta: { requiresAuth: true },
       },
       {
-        path: '/criar',
-        component: CriarPostView,
+        path: '/create',
+        component: CreatePostView,
         meta: { requiresAuth: true },
       },
       {
-        path: '/perfil',
-        component: PerfilView,
+        path: '/profile',
+        component: ProfileView,
         meta: { requiresAuth: true },
       },
       {
-        path: '/perfil/editar',
-        component: EditarPerfilView,
+        path: '/profile/edit',
+        component: EditProfileView,
         meta: { requiresAuth: true },
       },
       {
-        path: '/perfil/lista/:type',
-        component: ListaConexoesView,
+        path: '/profile/list/:type',
+        component: ConnectionsListView,
         meta: { requiresAuth: true },
         beforeEnter: (to) => {
-          if (!['seguidores', 'seguindo'].includes(String(to.params.type || ''))) {
-            return '/perfil';
+          if (!['followers', 'following'].includes(String(to.params.type || ''))) {
+            return '/profile';
           }
           return true;
         },
@@ -92,7 +88,6 @@ const routes = [
     ],
   },
 
-  // ❌ 404 (sem layout)
   {
     path: '/:pathMatch(.*)*',
     component: NotFoundView,
@@ -103,9 +98,6 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
 });
-
-
-// 🔐 GUARDS
 
 router.beforeEach((to) => {
   const auth = useAuthStore();

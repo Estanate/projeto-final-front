@@ -14,15 +14,13 @@ const isLoading = ref(false);
 const errorMessage = ref('');
 
 const maxCaptionLength = 2200;
-const maxFileSize = 5 * 1024 * 1024; // 5MB
+const maxFileSize = 5 * 1024 * 1024;
 const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
-//Define se a postagem é valida por: verificar se há alguma imagem na postagem, e se o texto na postagem está de acordo com o minimo e o limite
 const isValid = computed(() => {
   return imageFile.value && caption.value.trim().length > 0 && caption.value.length <= maxCaptionLength;
 });
 
-//NAO SEI
 watch(imageFile, (newFile) => {
   if (previewUrl.value) {
     URL.revokeObjectURL(previewUrl.value);
@@ -44,12 +42,12 @@ function handleFileChange(event) {
   }
 
   if (!allowedImageTypes.includes(file.type)) {
-    errorMessage.value = 'Formato inválido. Use JPG, JPEG, PNG ou WEBP.';
+    errorMessage.value = 'Invalid format. Use JPG, JPEG, PNG or WEBP.';
     return;
   }
 
   if (file.size > maxFileSize) {
-    errorMessage.value = 'Imagem deve ter no máximo 5MB';
+    errorMessage.value = 'Image must be at most 5MB';
     return;
   }
 
@@ -70,13 +68,12 @@ async function handleSubmit() {
     await feed.createPost(formData);
     router.push('/feed');
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || error.message || 'Erro ao criar post';
+    errorMessage.value = error.response?.data?.message || error.message || 'Error creating post';
   } finally {
     isLoading.value = false;
   }
 }
 
-// Cleanup on unmount
 import { onUnmounted } from 'vue';
 onUnmounted(() => {
   if (previewUrl.value) {
@@ -86,13 +83,13 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="criar-post">
-    <h2>Criar novo post</h2>
+  <div class="create-post">
+    <h2>Create new post</h2>
 
     <form @submit.prevent="handleSubmit">
-      <!-- File Input -->
+
       <div class="mb-3">
-        <label class="form-label">Imagem</label>
+        <label class="form-label">Image</label>
         <input
           type="file"
           accept="image/jpeg,image/jpg,image/png,image/webp"
@@ -102,44 +99,40 @@ onUnmounted(() => {
         />
       </div>
 
-      <!-- Preview -->
       <div v-if="previewUrl" class="preview">
         <img :src="previewUrl" alt="Preview" />
       </div>
 
-      <!-- Caption -->
       <div class="mb-3">
-        <label class="form-label">Legenda</label>
+        <label class="form-label">Caption</label>
         <textarea
           v-model="caption"
           class="form-control"
           rows="3"
           :maxlength="maxCaptionLength"
-          placeholder="Escreva uma legenda..."
+          placeholder="Write a caption..."
         ></textarea>
         <small class="text-muted">
           {{ caption.length }}/{{ maxCaptionLength }}
         </small>
       </div>
 
-      <!-- Error -->
       <p v-if="errorMessage" class="text-danger">{{ errorMessage }}</p>
 
-      <!-- Submit -->
       <button
         type="submit"
         :disabled="!isValid || isLoading"
         class="btn btn-primary w-100"
       >
         <Spinner v-if="isLoading" size="sm" />
-        <span v-else>Publicar</span>
+        <span v-else>Post</span>
       </button>
     </form>
   </div>
 </template>
 
 <style scoped>
-.criar-post {
+.create-post {
   max-width: 600px;
   margin: 0 auto;
   padding: 16px;
